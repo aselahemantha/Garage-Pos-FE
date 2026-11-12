@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/store';
 import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
 import { useActiveCashSession } from '@/features/billing/api';
+import { useLowStockReport } from '@/features/inventory/api';
 import { formatMoney } from '@/lib/format';
 import {
   Wrench,
@@ -23,6 +24,9 @@ export const AppLayout: React.FC = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const { data: activeSession } = useActiveCashSession();
+  const { data: lowStock } = useLowStockReport();
+
+  const totalLowStock = (lowStock?.low_stock_count || 0) + (lowStock?.out_of_stock_count || 0);
 
   const handleLogout = async () => {
     try {
@@ -38,7 +42,13 @@ export const AppLayout: React.FC = () => {
     { label: 'Jobs', to: '/', icon: Wrench, roles: ['owner', 'advisor', 'mechanic'] },
     { label: 'Invoices', to: '/invoices', icon: FileText, roles: ['owner', 'advisor'] },
     { label: 'Customers', to: '/customers', icon: Users, roles: ['owner', 'advisor'] },
-    { label: 'Inventory', to: '/inventory', icon: Boxes, badge: '3', roles: ['owner', 'advisor'] },
+    {
+      label: 'Inventory',
+      to: '/inventory',
+      icon: Boxes,
+      badge: totalLowStock > 0 ? String(totalLowStock) : undefined,
+      roles: ['owner', 'advisor'],
+    },
     { label: 'Cash', to: '/cash', icon: Banknote, roles: ['owner', 'advisor'] },
     { label: 'Reports', to: '/reports', icon: BarChart3, roles: ['owner'] },
     { label: 'Staff', to: '/users', icon: ShieldCheck, roles: ['owner', 'advisor'] },

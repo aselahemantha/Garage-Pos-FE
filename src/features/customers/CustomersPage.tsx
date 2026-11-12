@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCustomers, useCreateCustomer, useCreateVehicle } from './api';
 import { Plate } from '@/components/ui/Plate';
+import { CustomerDetailModal } from './CustomerDetailModal';
 import {
   Users,
   Search,
@@ -18,6 +19,7 @@ import { formatDate } from '@/lib/format';
 export const CustomersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
 
   // Form state for creating customer + vehicle
   const [name, setName] = useState('');
@@ -113,7 +115,8 @@ export const CustomersPage: React.FC = () => {
           {data.data.map((c) => (
             <div
               key={c.id}
-              className="bg-card rounded-xl border border-border p-5 shadow-soft flex flex-col justify-between hover:border-primary/50 transition-colors"
+              onClick={() => setSelectedCustomerId(c.id)}
+              className="bg-card rounded-xl border border-border p-5 shadow-soft flex flex-col justify-between hover:border-primary/50 transition-colors cursor-pointer group"
             >
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
@@ -330,6 +333,13 @@ export const CustomersPage: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+      {/* Customer Detail & History Modal */}
+      {selectedCustomerId && (
+        <CustomerDetailModal
+          customerId={selectedCustomerId}
+          onClose={() => setSelectedCustomerId(null)}
+        />
       )}
     </div>
   );
