@@ -419,9 +419,13 @@ export const JobBoardPage: React.FC = () => {
                     e.stopPropagation();
                     try {
                       const inv = await issueInvoiceMutation.mutateAsync({ job_card_id: j.id });
-                      navigate(`/invoices/${inv.id}`);
-                    } catch {
-                      navigate('/invoices');
+                      if (inv && inv.id) {
+                        navigate(`/invoices/${inv.id}`);
+                      } else {
+                        navigate('/invoices');
+                      }
+                    } catch (err: unknown) {
+                      alert(err instanceof Error ? err.message : 'Failed to issue invoice');
                     }
                   }}
                   className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-status-completed/30 bg-status-completed-soft text-status-completed-text text-xs font-bold hover:bg-status-completed/20 transition-colors"
