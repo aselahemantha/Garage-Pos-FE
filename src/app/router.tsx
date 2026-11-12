@@ -15,6 +15,8 @@ import { PrintInvoicePage } from '@/features/billing/PrintInvoicePage';
 import { CashDrawerPage } from '@/features/billing/CashDrawerPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { UsersPage } from '@/features/users/UsersPage';
+import { PrintWorkOrderPage } from '@/features/jobs/PrintWorkOrderPage';
+import { VehicleHistoryPage } from '@/features/vehicles/VehicleHistoryPage';
 import { useAuthStore } from '@/features/auth/store';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({
@@ -107,6 +109,10 @@ export const router = createBrowserRouter([
         path: 'users',
         element: <UsersPage />,
       },
+      {
+        path: 'vehicles/:id',
+        element: <VehicleHistoryPage />,
+      },
     ],
   },
   {
@@ -114,6 +120,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <PrintInvoicePage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/jobs/:id/print',
+    element: (
+      <ProtectedRoute>
+        <PrintWorkOrderPage />
       </ProtectedRoute>
     ),
   },

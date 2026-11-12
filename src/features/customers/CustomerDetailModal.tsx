@@ -286,22 +286,35 @@ export const CustomerDetailModal: React.FC<Props> = ({ customerId, onClose }) =>
                   className="p-3 bg-muted/20 rounded-xl border border-border flex items-center justify-between"
                 >
                   <div className="flex items-center gap-3">
-                    <Plate plate={v.plate_no} size="sm" />
+                    <Link to={`/vehicles/${v.id}`} title="View Vehicle History">
+                      <Plate plate={v.plate_no} size="sm" />
+                    </Link>
                     <div>
-                      <span className="font-bold text-xs text-foreground block">
+                      <Link
+                        to={`/vehicles/${v.id}`}
+                        className="font-bold text-xs text-foreground hover:text-primary transition-colors block"
+                      >
                         {v.make} {v.model}
-                      </span>
+                      </Link>
                       <span className="text-[11px] text-muted-foreground">
                         {v.year || 'Year N/A'}
                       </span>
                     </div>
                   </div>
-                  <Link
-                    to={`/jobs/new`}
-                    className="text-[11px] text-primary hover:underline font-semibold"
-                  >
-                    + Job
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to={`/vehicles/${v.id}`}
+                      className="text-[11px] text-muted-foreground hover:text-foreground font-semibold"
+                    >
+                      History
+                    </Link>
+                    <Link
+                      to={`/jobs/new`}
+                      className="text-[11px] text-primary hover:underline font-semibold"
+                    >
+                      + Job
+                    </Link>
+                  </div>
                 </div>
               ))}
             </div>

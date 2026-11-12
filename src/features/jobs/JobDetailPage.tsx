@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   useJob,
   useUpdateJobStatus,
@@ -30,6 +30,7 @@ import {
   Edit2,
   X,
   Smartphone,
+  Printer,
 } from 'lucide-react';
 
 export const JobDetailPage: React.FC = () => {
@@ -230,6 +231,15 @@ export const JobDetailPage: React.FC = () => {
 
         {/* Action Controls & Technician Mode Switcher */}
         <div className="flex items-center gap-2">
+          {/* Print Work Order Button */}
+          <Link
+            to={`/jobs/${job.id}/print`}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-card hover:bg-muted text-foreground font-semibold text-xs transition-colors shadow-xs"
+          >
+            <Printer className="w-3.5 h-3.5 text-muted-foreground" />
+            <span>Print Work Order</span>
+          </Link>
+
           {/* Technician floor mode toggle */}
           <button
             type="button"
@@ -299,7 +309,9 @@ export const JobDetailPage: React.FC = () => {
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Vehicle Card
               </span>
-              <Plate plate={job.plate_no} size="md" />
+              <Link to={`/vehicles/${job.vehicle_id}`} title="View Vehicle History">
+                <Plate plate={job.plate_no} size="md" />
+              </Link>
             </div>
 
             <div className="space-y-2 text-xs">
