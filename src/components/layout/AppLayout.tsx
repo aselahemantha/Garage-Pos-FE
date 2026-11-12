@@ -12,6 +12,7 @@ import {
   Banknote,
   BarChart3,
   Settings,
+  ShieldCheck,
   LogOut,
   Search,
   CheckCircle2,
@@ -40,6 +41,7 @@ export const AppLayout: React.FC = () => {
     { label: 'Inventory', to: '/inventory', icon: Boxes, badge: '3', roles: ['owner', 'advisor'] },
     { label: 'Cash', to: '/cash', icon: Banknote, roles: ['owner', 'advisor'] },
     { label: 'Reports', to: '/reports', icon: BarChart3, roles: ['owner'] },
+    { label: 'Staff', to: '/users', icon: ShieldCheck, roles: ['owner', 'advisor'] },
     { label: 'Settings', to: '/settings', icon: Settings, roles: ['owner'] },
   ];
 

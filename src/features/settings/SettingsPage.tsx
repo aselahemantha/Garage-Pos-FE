@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useSettings, useUpdateSettings } from './api';
-import { Save, CheckCircle2, Loader2, DollarSign, Building } from 'lucide-react';
+import { Save, CheckCircle2, Loader2, DollarSign, Building, Users } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
   const { data: settings, isLoading } = useSettings();
@@ -63,6 +64,21 @@ export const SettingsPage: React.FC = () => {
         <p className="text-xs text-muted-foreground mt-0.5">
           General business identity, billing currency, VAT / tax rate and receipt details
         </p>
+      </div>
+
+      {/* Settings Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-border pb-2">
+        <span className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-primary border-b-2 border-primary">
+          <Building className="w-4 h-4" />
+          General Profile
+        </span>
+        <Link
+          to="/settings/users"
+          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Users className="w-4 h-4" />
+          Staff & User Accounts
+        </Link>
       </div>
 
       {savedSuccess && (

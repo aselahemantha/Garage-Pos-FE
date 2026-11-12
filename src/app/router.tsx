@@ -14,6 +14,7 @@ import { InvoiceDetailPage } from '@/features/billing/InvoiceDetailPage';
 import { PrintInvoicePage } from '@/features/billing/PrintInvoicePage';
 import { CashDrawerPage } from '@/features/billing/CashDrawerPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
+import { UsersPage } from '@/features/users/UsersPage';
 import { useAuthStore } from '@/features/auth/store';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({
@@ -97,6 +98,14 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         element: <SettingsPage />,
+      },
+      {
+        path: 'settings/users',
+        element: <UsersPage />,
+      },
+      {
+        path: 'users',
+        element: <UsersPage />,
       },
     ],
   },
