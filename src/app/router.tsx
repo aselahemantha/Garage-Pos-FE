@@ -3,8 +3,10 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { JobBoardPage } from '@/features/jobs/JobBoardPage';
+import { NewJobCardPage } from '@/features/jobs/NewJobCardPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
 import { CatalogPage } from '@/features/catalog/CatalogPage';
+import { InventoryPage } from '@/features/inventory/InventoryPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { useAuthStore } from '@/features/auth/store';
 
@@ -52,7 +54,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'jobs/new',
-        element: <div className="p-4 bg-card rounded-lg border">New Job Card Form (Sprint 2)</div>,
+        element: <NewJobCardPage />,
       },
       {
         path: 'jobs/:id',
@@ -72,7 +74,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'inventory',
-        element: <div className="p-4 bg-card rounded-lg border">Parts Inventory (Sprint 2 & 4)</div>,
+        element: <InventoryPage />,
       },
       {
         path: 'cash',
