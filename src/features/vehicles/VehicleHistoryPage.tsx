@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useVehicleHistory } from './api';
 import { Plate } from '@/components/ui/Plate';
 import { formatMoney, formatDate } from '@/lib/format';
@@ -22,7 +22,25 @@ export const VehicleHistoryPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: history, isLoading, error } = useVehicleHistory(id);
-  const [activeTab, setActiveTab] = useState<'jobs' | 'invoices' | 'mileage'>('jobs');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawTab = searchParams.get('tab');
+  const activeTab: 'jobs' | 'invoices' | 'mileage' =
+    rawTab === 'invoices' || rawTab === 'mileage' ? rawTab : 'jobs';
+
+  const setActiveTab = (tab: 'jobs' | 'invoices' | 'mileage') => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (tab === 'jobs') {
+          next.delete('tab');
+        } else {
+          next.set('tab', tab);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
 
   if (isLoading) {
     return (

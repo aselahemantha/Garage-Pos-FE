@@ -61,10 +61,16 @@ export const InvoiceDetailPage: React.FC = () => {
       <div className="p-8 text-center space-y-4">
         <p className="text-destructive font-semibold">Failed to load invoice</p>
         <button
-          onClick={() => navigate('/invoices')}
+          onClick={() => {
+            if (window.history.length > 1) {
+              navigate(-1);
+            } else {
+              navigate('/invoices');
+            }
+          }}
           className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm"
         >
-          Back to Invoices
+          Go Back
         </button>
       </div>
     );
@@ -145,8 +151,15 @@ export const InvoiceDetailPage: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-border">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/invoices')}
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/invoices');
+              }
+            }}
             className="p-2 rounded-lg border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            title="Go Back"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -217,19 +230,39 @@ export const InvoiceDetailPage: React.FC = () => {
                   Vehicle
                 </span>
                 {invoice.plate_no ? (
-                  <div className="flex items-center gap-3">
-                    <Plate plate={invoice.plate_no} size="md" />
-                    <div>
-                      <span className="text-sm font-bold text-foreground block">
-                        {[invoice.vehicle_make, invoice.vehicle_model].filter(Boolean).join(' ')}
-                      </span>
-                      {invoice.vehicle_color && (
-                        <span className="text-xs text-muted-foreground">
-                          Color: {invoice.vehicle_color}
+                  invoice.vehicle_id ? (
+                    <Link
+                      to={`/vehicles/${invoice.vehicle_id}?tab=invoices`}
+                      className="flex items-center gap-3 group hover:opacity-90 transition-opacity"
+                      title="View Vehicle History"
+                    >
+                      <Plate plate={invoice.plate_no} size="md" />
+                      <div>
+                        <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors block">
+                          {[invoice.vehicle_make, invoice.vehicle_model].filter(Boolean).join(' ')}
                         </span>
-                      )}
+                        {invoice.vehicle_color && (
+                          <span className="text-xs text-muted-foreground">
+                            Color: {invoice.vehicle_color}
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <Plate plate={invoice.plate_no} size="md" />
+                      <div>
+                        <span className="text-sm font-bold text-foreground block">
+                          {[invoice.vehicle_make, invoice.vehicle_model].filter(Boolean).join(' ')}
+                        </span>
+                        {invoice.vehicle_color && (
+                          <span className="text-xs text-muted-foreground">
+                            Color: {invoice.vehicle_color}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )
                 ) : (
                   <span className="text-sm font-medium text-foreground">
                     Over-the-counter Direct Sale

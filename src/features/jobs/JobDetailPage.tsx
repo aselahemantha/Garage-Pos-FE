@@ -78,10 +78,16 @@ export const JobDetailPage: React.FC = () => {
       <div className="p-8 text-center space-y-4">
         <p className="text-destructive font-semibold">Job Card not found</p>
         <button
-          onClick={() => navigate('/')}
+          onClick={() => {
+            if (window.history.length > 1) {
+              navigate(-1);
+            } else {
+              navigate('/');
+            }
+          }}
           className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm"
         >
-          Back to Job Board
+          Go Back
         </button>
       </div>
     );
@@ -197,8 +203,15 @@ export const JobDetailPage: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-border">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/');
+              }
+            }}
             className="p-2 rounded-lg border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            title="Go Back"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
