@@ -212,6 +212,7 @@ export const NewJobCardPage: React.FC = () => {
 
   // Total estimate calculation
   const totalMinor = selectedItems.reduce((sum, item) => sum + item.qty * item.unit_price - item.discount, 0);
+  const totalDiscount = selectedItems.reduce((sum, item) => sum + item.discount, 0);
 
   // Submit and create Job Card
   const handleOpenJobCard = async () => {
@@ -710,16 +711,43 @@ export const NewJobCardPage: React.FC = () => {
             <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1 divide-y divide-border/60">
               {selectedItems.map((item, idx) => (
                 <div key={idx} className="pt-2 first:pt-0 flex items-start justify-between gap-2 text-xs">
-                  <div>
+                  <div className="flex-1">
                     <p className="font-semibold text-foreground leading-tight">{item.description}</p>
-                    <span className="text-[10px] text-muted-foreground capitalize">
-                      {item.item_type} · qty {item.qty}
-                    </span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] text-muted-foreground capitalize">
+                        {item.item_type} · qty {item.qty}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground">Disc:</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="50"
+                          placeholder="0"
+                          value={item.discount > 0 ? (item.discount / 100).toFixed(0) : ''}
+                          onChange={(e) => {
+                            const disc = Math.max(0, Math.round(parseFloat(e.target.value || '0') * 100));
+                            setSelectedItems((prev) =>
+                              prev.map((it, i) => (i === idx ? { ...it, discount: disc } : it))
+                            );
+                          }}
+                          className="w-16 px-1.5 py-0.5 text-[11px] font-mono border border-border rounded bg-background text-foreground"
+                          title="Line discount in LKR"
+                        />
+                      </div>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="font-plate text-sm font-bold text-foreground">
-                      {formatMoney(item.qty * item.unit_price, 'LKR')}
-                    </span>
+                    <div className="text-right">
+                      <span className="font-plate text-sm font-bold text-foreground block">
+                        {formatMoney(Math.max(0, item.qty * item.unit_price - item.discount), 'LKR')}
+                      </span>
+                      {item.discount > 0 && (
+                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono block">
+                          -{formatMoney(item.discount, 'LKR')}
+                        </span>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={() => removeItem(idx)}
@@ -742,6 +770,12 @@ export const NewJobCardPage: React.FC = () => {
                 <span>Promised by</span>
                 <span className="font-semibold text-foreground">{promisedTime}</span>
               </div>
+              {totalDiscount > 0 && (
+                <div className="flex justify-between text-amber-600 dark:text-amber-400 font-medium">
+                  <span>Total Line Discounts</span>
+                  <span className="font-mono font-bold">-{formatMoney(totalDiscount, 'LKR')}</span>
+                </div>
+              )}
             </div>
 
             {/* Estimate Total */}

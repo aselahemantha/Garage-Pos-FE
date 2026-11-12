@@ -58,6 +58,7 @@ export const JobDetailPage: React.FC = () => {
   const [customDescription, setCustomDescription] = useState<string>('');
   const [itemQty, setItemQty] = useState<number>(1);
   const [itemUnitPrice, setItemUnitPrice] = useState<number>(0);
+  const [itemDiscount, setItemDiscount] = useState<number>(0);
 
   // Edit Notes & Complaint Modal
   const [showEditNotesModal, setShowEditNotesModal] = useState<boolean>(false);
@@ -167,7 +168,7 @@ export const JobDetailPage: React.FC = () => {
         description: desc,
         qty: itemQty,
         unit_price: price,
-        discount: 0,
+        discount: itemDiscount,
       });
 
       setShowAddItemModal(false);
@@ -175,6 +176,7 @@ export const JobDetailPage: React.FC = () => {
       setSelectedServiceId(null);
       setSelectedPartId(null);
       setItemQty(1);
+      setItemDiscount(0);
     } catch (err: any) {
       alert(err.message || 'Failed to add item');
     }
@@ -196,6 +198,8 @@ export const JobDetailPage: React.FC = () => {
   const partsTotal = job.items
     .filter((it) => it.item_type === 'part')
     .reduce((sum, it) => sum + it.line_total, 0);
+
+  const discountTotal = job.items.reduce((sum, it) => sum + (it.discount || 0), 0);
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-200">
@@ -508,6 +512,7 @@ export const JobDetailPage: React.FC = () => {
                       <th className="py-3 px-3">Type</th>
                       <th className="py-3 px-3 text-right">Qty</th>
                       <th className="py-3 px-3 text-right">Unit Price</th>
+                      <th className="py-3 px-3 text-right">Discount</th>
                       <th className="py-3 px-4 text-right">Line Total</th>
                       {isEditable && <th className="py-3 px-4 text-right">Action</th>}
                     </tr>
@@ -516,7 +521,7 @@ export const JobDetailPage: React.FC = () => {
                     {job.items.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={isEditable ? 7 : 6}
+                          colSpan={isEditable ? 8 : 7}
                           className="py-8 text-center text-muted-foreground italic"
                         >
                           No items added yet. Click "+ Add Service / Part" to record work.
@@ -555,6 +560,9 @@ export const JobDetailPage: React.FC = () => {
                           <td className="py-3.5 px-3 text-right font-mono text-foreground">
                             {formatMoney(it.unit_price, 'LKR')}
                           </td>
+                          <td className="py-3.5 px-3 text-right font-mono text-muted-foreground">
+                            {it.discount > 0 ? `-${formatMoney(it.discount, 'LKR')}` : '-'}
+                          </td>
                           <td className="py-3.5 px-4 text-right font-mono font-bold text-foreground">
                             {formatMoney(it.line_total, 'LKR')}
                           </td>
@@ -592,6 +600,14 @@ export const JobDetailPage: React.FC = () => {
                   {formatMoney(partsTotal, 'LKR')}
                 </span>
               </div>
+              {discountTotal > 0 && (
+                <div className="flex justify-between text-amber-600 dark:text-amber-400 font-medium">
+                  <span>Item Discounts:</span>
+                  <span className="font-mono font-bold">
+                    -{formatMoney(discountTotal, 'LKR')}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between text-base font-bold pt-2 border-t border-border">
                 <span className="text-foreground">Estimated Repair Total:</span>
                 <span className="font-mono text-primary font-black text-lg">
@@ -711,7 +727,7 @@ export const JobDetailPage: React.FC = () => {
               </div>
 
               {/* Quantity & Unit Price */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
                     Quantity
@@ -728,7 +744,7 @@ export const JobDetailPage: React.FC = () => {
 
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
-                    Price (LKR)
+                    Unit Price (LKR)
                   </label>
                   <input
                     type="number"
@@ -740,6 +756,31 @@ export const JobDetailPage: React.FC = () => {
                     className="w-full px-3 py-2 rounded-xl border border-border bg-background text-foreground text-sm font-mono focus:ring-2 focus:ring-primary focus:outline-none"
                   />
                 </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                    Discount (LKR)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={itemDiscount > 0 ? (itemDiscount / 100).toFixed(2) : ''}
+                    onChange={(e) =>
+                      setItemDiscount(Math.max(0, Math.round(parseFloat(e.target.value || '0') * 100)))
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-border bg-background text-foreground text-sm font-mono focus:ring-2 focus:ring-primary focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Line Total preview */}
+              <div className="p-3 bg-muted/30 border border-border rounded-xl flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Calculated Line Total:</span>
+                <span className="font-mono font-bold text-foreground text-sm">
+                  {formatMoney(Math.max(0, itemQty * itemUnitPrice - itemDiscount), 'LKR')}
+                </span>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2">

@@ -6,6 +6,7 @@ import {
   CashSession,
   IssueInvoicePayload,
   RecordPaymentPayload,
+  ApplyDiscountPayload,
   OpenCashSessionPayload,
   CloseCashSessionPayload,
 } from './types';
@@ -78,6 +79,22 @@ export function useVoidInvoice(invoiceId: number) {
     onSuccess: (data) => {
       queryClient.setQueryData(['invoice', invoiceId], data);
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    },
+  });
+}
+
+export function useApplyInvoiceDiscount(invoiceId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ApplyDiscountPayload) =>
+      apiClient<{ data: InvoiceDetail }>(`/invoices/${invoiceId}/discount`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }).then((res) => res.data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['invoice', invoiceId], data);
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },
   });
 }

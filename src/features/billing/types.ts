@@ -140,3 +140,9 @@ export interface CloseCashSessionPayload {
   closing_counted: number;
   notes?: string;
 }
+
+export interface ApplyDiscountPayload {
+  discount_amount?: number;
+  discount_percent?: number;
+  reason?: string;
+}

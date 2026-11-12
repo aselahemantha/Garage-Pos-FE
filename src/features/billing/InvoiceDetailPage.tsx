@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useInvoice, useRecordPayment, useVoidInvoice, useActiveCashSession } from './api';
+import { useInvoice, useRecordPayment, useVoidInvoice, useActiveCashSession, useApplyInvoiceDiscount } from './api';
 import { Plate } from '@/components/ui/Plate';
 import { formatMoney, formatDate } from '@/lib/format';
 import { useAuthStore } from '@/features/auth/store';
@@ -19,6 +19,9 @@ import {
   User,
   Phone,
   ShieldCheck,
+  Tag,
+  Percent,
+  X,
 } from 'lucide-react';
 
 export const InvoiceDetailPage: React.FC = () => {
@@ -30,6 +33,7 @@ export const InvoiceDetailPage: React.FC = () => {
   const { data: activeSession } = useActiveCashSession();
   const recordPaymentMutation = useRecordPayment(Number(id));
   const voidMutation = useVoidInvoice(Number(id));
+  const applyDiscountMutation = useApplyInvoiceDiscount(Number(id));
 
   // Payment form state
   const [method, setMethod] = useState<PaymentMethod>('cash');
@@ -47,6 +51,13 @@ export const InvoiceDetailPage: React.FC = () => {
   // Void modal state
   const [showVoidModal, setShowVoidModal] = useState<boolean>(false);
   const [voidReason, setVoidReason] = useState<string>('');
+
+  // Discount modal state
+  const [showDiscountModal, setShowDiscountModal] = useState<boolean>(false);
+  const [discountType, setDiscountType] = useState<'amount' | 'percent'>('amount');
+  const [discountValue, setDiscountValue] = useState<string>('');
+  const [discountReason, setDiscountReason] = useState<string>('');
+  const [discountError, setDiscountError] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -145,6 +156,67 @@ export const InvoiceDetailPage: React.FC = () => {
     }
   };
 
+  const canApplyDiscount =
+    invoice &&
+    invoice.status !== 'void' &&
+    invoice.balance > 0 &&
+    (user?.role === 'owner' || user?.role === 'advisor');
+
+  const handleOpenDiscountModal = () => {
+    if (!invoice) return;
+    setDiscountType('amount');
+    setDiscountValue(invoice.discount_total > 0 ? (invoice.discount_total / 100).toFixed(2) : '');
+    setDiscountReason('');
+    setDiscountError(null);
+    setShowDiscountModal(true);
+  };
+
+  const valFloat = parseFloat(discountValue) || 0;
+  const previewDiscountMinor =
+    discountType === 'amount'
+      ? Math.round(valFloat * 100)
+      : invoice
+      ? Math.round((invoice.subtotal * valFloat) / 100)
+      : 0;
+
+  const previewNetSubtotal = invoice ? Math.max(0, invoice.subtotal - previewDiscountMinor) : 0;
+  const previewTaxMinor =
+    invoice && invoice.tax_bps > 0
+      ? Math.round((previewNetSubtotal * invoice.tax_bps + 5000) / 10000)
+      : 0;
+  const previewTotalMinor = previewNetSubtotal + previewTaxMinor;
+  const previewBalanceMinor = invoice ? Math.max(0, previewTotalMinor - invoice.paid_total) : 0;
+
+  const handleApplyDiscountSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDiscountError(null);
+    if (previewDiscountMinor < 0) {
+      setDiscountError('Discount cannot be negative');
+      return;
+    }
+    if (invoice && previewDiscountMinor > invoice.subtotal) {
+      setDiscountError('Discount cannot exceed subtotal');
+      return;
+    }
+
+    try {
+      if (discountType === 'amount') {
+        await applyDiscountMutation.mutateAsync({
+          discount_amount: previewDiscountMinor,
+          reason: discountReason.trim() || undefined,
+        });
+      } else {
+        await applyDiscountMutation.mutateAsync({
+          discount_percent: valFloat,
+          reason: discountReason.trim() || undefined,
+        });
+      }
+      setShowDiscountModal(false);
+    } catch (err: unknown) {
+      setDiscountError(err instanceof Error ? err.message : 'Failed to apply discount');
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-200">
       {/* Top Navigation & Actions Bar */}
@@ -204,6 +276,15 @@ export const InvoiceDetailPage: React.FC = () => {
             <FileText className="w-3.5 h-3.5 text-primary" />
             <span>A4 Invoice</span>
           </Link>
+          {canApplyDiscount && (
+            <button
+              onClick={() => handleOpenDiscountModal()}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-semibold transition-colors"
+            >
+              <Tag className="w-3.5 h-3.5 text-amber-600" />
+              <span>{invoice.discount_total > 0 ? 'Edit Discount' : '+ Discount'}</span>
+            </button>
+          )}
           {user?.role === 'owner' && invoice.status !== 'void' && (
             <button
               onClick={() => setShowVoidModal(true)}
@@ -378,14 +459,26 @@ export const InvoiceDetailPage: React.FC = () => {
                   {formatMoney(invoice.subtotal, 'LKR')}
                 </span>
               </div>
-              {invoice.discount_total > 0 && (
-                <div className="flex justify-between text-muted-foreground">
+              <div className="flex justify-between items-center text-muted-foreground">
+                <div className="flex items-center gap-2">
                   <span>Discount Total:</span>
-                  <span className="font-mono font-semibold text-foreground">
-                    -{formatMoney(invoice.discount_total, 'LKR')}
-                  </span>
+                  {canApplyDiscount && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenDiscountModal()}
+                      className="text-[11px] text-primary font-bold hover:underline inline-flex items-center gap-1"
+                    >
+                      <Tag className="w-3 h-3" />
+                      <span>{invoice.discount_total > 0 ? 'Edit Discount' : '+ Add Discount'}</span>
+                    </button>
+                  )}
                 </div>
-              )}
+                <span className={`font-mono font-semibold ${invoice.discount_total > 0 ? 'text-amber-600 dark:text-amber-400 font-bold' : 'text-foreground'}`}>
+                  {invoice.discount_total > 0
+                    ? `-${formatMoney(invoice.discount_total, 'LKR')}`
+                    : 'LKR 0.00'}
+                </span>
+              </div>
               {invoice.tax_total > 0 && (
                 <div className="flex justify-between text-muted-foreground">
                   <span>VAT ({invoice.tax_bps / 100}%):</span>
@@ -778,6 +871,157 @@ export const InvoiceDetailPage: React.FC = () => {
                 {voidMutation.isPending ? 'Voiding...' : 'Confirm Void'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Apply / Edit Discount Modal */}
+      {showDiscountModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <Tag className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-foreground">Apply Bill Discount</h3>
+                  <p className="text-xs text-muted-foreground">Adjust overall discount for {invoice.invoice_no}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDiscountModal(false)}
+                className="p-1 text-muted-foreground hover:text-foreground rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {discountError && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{discountError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleApplyDiscountSubmit} className="space-y-4 text-xs">
+              {/* Type Switcher */}
+              <div>
+                <label className="font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                  Discount Type
+                </label>
+                <div className="grid grid-cols-2 gap-2 bg-muted/40 p-1 rounded-xl border border-border">
+                  <button
+                    type="button"
+                    onClick={() => setDiscountType('amount')}
+                    className={`py-2 px-3 rounded-lg font-bold text-xs transition-colors flex items-center justify-center gap-1.5 ${
+                      discountType === 'amount'
+                        ? 'bg-card text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <span>Fixed Amount (LKR)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDiscountType('percent')}
+                    className={`py-2 px-3 rounded-lg font-bold text-xs transition-colors flex items-center justify-center gap-1.5 ${
+                      discountType === 'percent'
+                        ? 'bg-card text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Percent className="w-3.5 h-3.5" />
+                    <span>Percentage (%)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Value Input */}
+              <div>
+                <label className="font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                  {discountType === 'amount' ? 'Discount Amount (LKR)' : 'Discount Percentage (%)'}
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step={discountType === 'amount' ? '0.01' : '1'}
+                    min="0"
+                    max={discountType === 'amount' ? (invoice.subtotal / 100).toFixed(2) : '100'}
+                    placeholder={discountType === 'amount' ? 'e.g. 500.00' : 'e.g. 10'}
+                    value={discountValue}
+                    onChange={(e) => setDiscountValue(e.target.value)}
+                    required
+                    className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-foreground font-mono font-bold text-base focus:ring-2 focus:ring-primary focus:outline-none"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">
+                    {discountType === 'amount' ? 'LKR' : '%'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Reason / Notes */}
+              <div>
+                <label className="font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                  Reason / Concession Note (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Customer loyalty concession, seasonal promo"
+                  value={discountReason}
+                  onChange={(e) => setDiscountReason(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-border bg-background text-foreground text-xs focus:ring-2 focus:ring-primary focus:outline-none"
+                />
+              </div>
+
+              {/* Live Preview Box */}
+              <div className="p-3.5 bg-muted/30 border border-border rounded-xl space-y-1.5">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Gross Subtotal:</span>
+                  <span className="font-mono font-semibold">{formatMoney(invoice.subtotal, 'LKR')}</span>
+                </div>
+                <div className="flex justify-between text-amber-600 dark:text-amber-400 font-medium">
+                  <span>Applied Discount:</span>
+                  <span className="font-mono font-bold">-{formatMoney(previewDiscountMinor, 'LKR')}</span>
+                </div>
+                {invoice.tax_bps > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>VAT ({invoice.tax_bps / 100}%):</span>
+                    <span className="font-mono font-semibold">{formatMoney(previewTaxMinor, 'LKR')}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-sm text-foreground pt-1.5 border-t border-border">
+                  <span>New Grand Total:</span>
+                  <span className="font-mono text-primary text-base font-black">
+                    {formatMoney(previewTotalMinor, 'LKR')}
+                  </span>
+                </div>
+                <div className="flex justify-between font-semibold text-xs text-foreground">
+                  <span>New Balance Due:</span>
+                  <span className="font-mono text-destructive font-bold">
+                    {formatMoney(previewBalanceMinor, 'LKR')}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDiscountModal(false)}
+                  className="px-4 py-2 rounded-xl border border-border text-xs font-medium hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={applyDiscountMutation.isPending}
+                  className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition-colors shadow-md disabled:opacity-50"
+                >
+                  {applyDiscountMutation.isPending ? 'Saving...' : 'Apply Discount'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
