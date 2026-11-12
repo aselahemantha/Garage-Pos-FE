@@ -85,6 +85,40 @@ export const InventoryPage: React.FC = () => {
 
   const lowStockParts = parts?.filter((p) => p.stock_on_hand <= p.reorder_level) || [];
 
+  const fallbackLowStockItems = lowStockParts.map((p) => {
+    const deficit = Math.max(0, p.reorder_level - p.stock_on_hand);
+    let suggested = p.reorder_level * 2 - p.stock_on_hand;
+    if (suggested < p.reorder_level) suggested = p.reorder_level;
+    if (suggested <= 0) suggested = 1;
+    const estCost = Math.round(suggested * p.cost_price);
+    return {
+      part: p,
+      deficit,
+      suggested_reorder_qty: suggested,
+      estimated_cost: estCost,
+    };
+  });
+
+  const effectiveLowStockItems =
+    lowStockSummary?.items && lowStockSummary.items.length > 0
+      ? lowStockSummary.items
+      : fallbackLowStockItems;
+
+  const effectiveTotalEstCost =
+    lowStockSummary?.total_estimated_cost && lowStockSummary.total_estimated_cost > 0
+      ? lowStockSummary.total_estimated_cost
+      : effectiveLowStockItems.reduce((sum, i) => sum + i.estimated_cost, 0);
+
+  const effectiveOutCount =
+    lowStockSummary?.out_of_stock_count && lowStockSummary.out_of_stock_count > 0
+      ? lowStockSummary.out_of_stock_count
+      : effectiveLowStockItems.filter((i) => i.part.stock_on_hand <= 0).length;
+
+  const effectiveLowCount =
+    lowStockSummary?.low_stock_count && lowStockSummary.low_stock_count > 0
+      ? lowStockSummary.low_stock_count
+      : effectiveLowStockItems.filter((i) => i.part.stock_on_hand > 0).length;
+
   const displayedParts = parts?.filter((p) => {
     if (lowStockOnly) {
       return p.stock_on_hand <= p.reorder_level;
@@ -202,8 +236,11 @@ export const InventoryPage: React.FC = () => {
   };
 
   const handleOpenReorderModal = () => {
-    if (!lowStockSummary || lowStockSummary.items.length === 0) return;
-    const initialItems: BatchReorderItem[] = lowStockSummary.items.map((item) => ({
+    if (effectiveLowStockItems.length === 0) {
+      alert('No parts currently need replenishment.');
+      return;
+    }
+    const initialItems: BatchReorderItem[] = effectiveLowStockItems.map((item) => ({
       part_id: item.part.id,
       qty: item.suggested_reorder_qty,
       unit_cost: item.part.cost_price,
@@ -259,11 +296,14 @@ export const InventoryPage: React.FC = () => {
   };
 
   const handleExportCSV = () => {
-    if (!lowStockSummary || lowStockSummary.items.length === 0) return;
+    if (effectiveLowStockItems.length === 0) {
+      alert('No parts currently need replenishment.');
+      return;
+    }
 
     const rows = [
       ['SKU', 'Part Name', 'Category', 'Unit', 'Stock On Hand', 'Reorder Level', 'Deficit', 'Suggested Order Qty', 'Unit Cost (LKR)', 'Line Total (LKR)'],
-      ...lowStockSummary.items.map((item) => [
+      ...effectiveLowStockItems.map((item) => [
         item.part.sku,
         `"${item.part.name}"`,
         item.part.category || 'General',
@@ -344,7 +384,7 @@ export const InventoryPage: React.FC = () => {
                 {lowStockParts.length} parts need replenishment
               </div>
               <div className="text-muted-foreground text-[11px] mt-0.5">
-                Estimated restocking cost: <strong className="font-bold text-foreground">{formatMoney(lowStockSummary?.total_estimated_cost || 0, 'LKR')}</strong> ({lowStockSummary?.out_of_stock_count || 0} out of stock, {lowStockSummary?.low_stock_count || 0} low)
+                Estimated restocking cost: <strong className="font-bold text-foreground">{formatMoney(effectiveTotalEstCost, 'LKR')}</strong> ({effectiveOutCount} out of stock, {effectiveLowCount} low)
               </div>
             </div>
           </div>
@@ -1078,7 +1118,7 @@ export const InventoryPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {lowStockSummary?.items.map((item) => {
+                    {effectiveLowStockItems.map((item) => {
                       const currentItem = reorderItems.find((i) => i.part_id === item.part.id);
                       const qty = currentItem?.qty || 0;
                       const unitCost = currentItem?.unit_cost || item.part.cost_price;
