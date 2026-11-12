@@ -29,7 +29,7 @@ export const InvoiceDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
 
-  const { data: invoice, isLoading, error } = useInvoice(id);
+  const { data: invoice, isLoading, error, refetch } = useInvoice(id);
   const { data: activeSession } = useActiveCashSession();
   const recordPaymentMutation = useRecordPayment(Number(id));
   const voidMutation = useVoidInvoice(Number(id));
@@ -134,6 +134,7 @@ export const InvoiceDetailPage: React.FC = () => {
       setLastPaymentAmount(effectiveAmountMinor);
       setLastChangeGiven(changeMinor);
       setShowSuccessModal(true);
+      await refetch();
 
       // Reset form
       setTenderedInput('');
@@ -211,6 +212,7 @@ export const InvoiceDetailPage: React.FC = () => {
           reason: discountReason.trim() || undefined,
         });
       }
+      await refetch();
       setShowDiscountModal(false);
     } catch (err: unknown) {
       setDiscountError(err instanceof Error ? err.message : 'Failed to apply discount');

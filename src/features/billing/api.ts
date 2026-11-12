@@ -27,10 +27,11 @@ export function useInvoices(status?: string, search?: string, limit = 20, offset
 }
 
 export function useInvoice(id?: number | string) {
+  const normalizedId = id != null ? String(id) : undefined;
   return useQuery({
-    queryKey: ['invoice', id],
-    queryFn: () => apiClient<{ data: InvoiceDetail }>(`/invoices/${id}`).then((res) => res.data),
-    enabled: Boolean(id),
+    queryKey: ['invoice', normalizedId],
+    queryFn: () => apiClient<{ data: InvoiceDetail }>(`/invoices/${normalizedId}`).then((res) => res.data),
+    enabled: Boolean(normalizedId),
   });
 }
 
@@ -45,21 +46,23 @@ export function useIssueInvoice() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      queryClient.setQueryData(['invoice', data.id], data);
+      queryClient.setQueryData(['invoice', String(data.id)], data);
     },
   });
 }
 
-export function useRecordPayment(invoiceId: number) {
+export function useRecordPayment(invoiceId: number | string) {
   const queryClient = useQueryClient();
+  const idStr = String(invoiceId);
   return useMutation({
     mutationFn: (payload: RecordPaymentPayload) =>
-      apiClient<{ data: InvoiceDetail }>(`/invoices/${invoiceId}/payments`, {
+      apiClient<{ data: InvoiceDetail }>(`/invoices/${idStr}/payments`, {
         method: 'POST',
         body: JSON.stringify(payload),
       }).then((res) => res.data),
     onSuccess: (data) => {
-      queryClient.setQueryData(['invoice', invoiceId], data);
+      queryClient.setQueryData(['invoice', idStr], data);
+      queryClient.invalidateQueries({ queryKey: ['invoice', idStr] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['cash-session-active'] });
@@ -68,31 +71,35 @@ export function useRecordPayment(invoiceId: number) {
   });
 }
 
-export function useVoidInvoice(invoiceId: number) {
+export function useVoidInvoice(invoiceId: number | string) {
   const queryClient = useQueryClient();
+  const idStr = String(invoiceId);
   return useMutation({
     mutationFn: (reason: string) =>
-      apiClient<{ data: InvoiceDetail }>(`/invoices/${invoiceId}/void`, {
+      apiClient<{ data: InvoiceDetail }>(`/invoices/${idStr}/void`, {
         method: 'POST',
         body: JSON.stringify({ reason }),
       }).then((res) => res.data),
     onSuccess: (data) => {
-      queryClient.setQueryData(['invoice', invoiceId], data);
+      queryClient.setQueryData(['invoice', idStr], data);
+      queryClient.invalidateQueries({ queryKey: ['invoice', idStr] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
     },
   });
 }
 
-export function useApplyInvoiceDiscount(invoiceId: number) {
+export function useApplyInvoiceDiscount(invoiceId: number | string) {
   const queryClient = useQueryClient();
+  const idStr = String(invoiceId);
   return useMutation({
     mutationFn: (payload: ApplyDiscountPayload) =>
-      apiClient<{ data: InvoiceDetail }>(`/invoices/${invoiceId}/discount`, {
+      apiClient<{ data: InvoiceDetail }>(`/invoices/${idStr}/discount`, {
         method: 'POST',
         body: JSON.stringify(payload),
       }).then((res) => res.data),
     onSuccess: (data) => {
-      queryClient.setQueryData(['invoice', invoiceId], data);
+      queryClient.setQueryData(['invoice', idStr], data);
+      queryClient.invalidateQueries({ queryKey: ['invoice', idStr] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },
