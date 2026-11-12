@@ -3,6 +3,9 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { JobBoardPage } from '@/features/jobs/JobBoardPage';
+import { CustomersPage } from '@/features/customers/CustomersPage';
+import { CatalogPage } from '@/features/catalog/CatalogPage';
+import { SettingsPage } from '@/features/settings/SettingsPage';
 import { useAuthStore } from '@/features/auth/store';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({
@@ -13,8 +16,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
 
   if (isLoading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="h-screen w-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -49,39 +52,39 @@ export const router = createBrowserRouter([
       },
       {
         path: 'jobs/new',
-        element: <div className="p-4 bg-white rounded-lg border">New Job Card Form (Sprint 2)</div>,
+        element: <div className="p-4 bg-card rounded-lg border">New Job Card Form (Sprint 2)</div>,
       },
       {
         path: 'jobs/:id',
-        element: <div className="p-4 bg-white rounded-lg border">Job Detail (Sprint 2)</div>,
+        element: <div className="p-4 bg-card rounded-lg border">Job Detail (Sprint 2)</div>,
       },
       {
         path: 'invoices',
-        element: <div className="p-4 bg-white rounded-lg border">Invoices & Billing (Sprint 3)</div>,
+        element: <div className="p-4 bg-card rounded-lg border">Invoices & Billing (Sprint 3)</div>,
       },
       {
         path: 'customers',
-        element: <div className="p-4 bg-white rounded-lg border">Customer Management (Sprint 1)</div>,
+        element: <CustomersPage />,
       },
       {
         path: 'catalog',
-        element: <div className="p-4 bg-white rounded-lg border">Service Catalog (Sprint 1)</div>,
+        element: <CatalogPage />,
       },
       {
         path: 'inventory',
-        element: <div className="p-4 bg-white rounded-lg border">Parts Inventory (Sprint 2 & 4)</div>,
+        element: <div className="p-4 bg-card rounded-lg border">Parts Inventory (Sprint 2 & 4)</div>,
       },
       {
         path: 'cash',
-        element: <div className="p-4 bg-white rounded-lg border">Cash Drawer & Sessions (Sprint 3)</div>,
+        element: <div className="p-4 bg-card rounded-lg border">Cash Drawer & Sessions (Sprint 3)</div>,
       },
       {
         path: 'reports',
-        element: <div className="p-4 bg-white rounded-lg border">Reports & Analytics (Sprint 6)</div>,
+        element: <div className="p-4 bg-card rounded-lg border">Reports & Analytics (Sprint 6)</div>,
       },
       {
         path: 'settings',
-        element: <div className="p-4 bg-white rounded-lg border">Garage Settings (Sprint 1)</div>,
+        element: <SettingsPage />,
       },
     ],
   },
