@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Plate } from '@/components/ui/Plate';
 import { useBoardJobs, useUpdateJobStatus } from './api';
+import { useIssueInvoice } from '@/features/billing/api';
 import {
   Clock,
   PlayCircle,
@@ -38,6 +39,8 @@ export const JobBoardPage: React.FC = () => {
 
   const { data: realJobs, isLoading } = useBoardJobs();
   const updateStatus = useUpdateJobStatus();
+  const navigate = useNavigate();
+  const issueInvoiceMutation = useIssueInvoice();
 
   const mechanics = [
     { id: 'All', name: 'All mechanics' },
@@ -391,13 +394,22 @@ export const JobBoardPage: React.FC = () => {
                     {j.badge}
                   </div>
                 )}
-                <Link
-                  to="/invoices"
+                <button
+                  type="button"
+                  disabled={issueInvoiceMutation.isPending}
+                  onClick={async () => {
+                    try {
+                      const inv = await issueInvoiceMutation.mutateAsync({ job_card_id: j.id });
+                      navigate(`/invoices/${inv.id}`);
+                    } catch {
+                      navigate('/invoices');
+                    }
+                  }}
                   className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-status-completed/30 bg-status-completed-soft text-status-completed-text text-xs font-bold hover:bg-status-completed/20 transition-colors"
                 >
                   <FileCheck2 className="w-3.5 h-3.5" />
-                  <span>Create invoice</span>
-                </Link>
+                  <span>Invoice & Pay</span>
+                </button>
               </div>
             ))}
           </div>

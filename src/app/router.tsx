@@ -8,6 +8,10 @@ import { CustomersPage } from '@/features/customers/CustomersPage';
 import { CatalogPage } from '@/features/catalog/CatalogPage';
 import { InventoryPage } from '@/features/inventory/InventoryPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
+import { InvoicesListPage } from '@/features/billing/InvoicesListPage';
+import { InvoiceDetailPage } from '@/features/billing/InvoiceDetailPage';
+import { PrintInvoicePage } from '@/features/billing/PrintInvoicePage';
+import { CashDrawerPage } from '@/features/billing/CashDrawerPage';
 import { useAuthStore } from '@/features/auth/store';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({
@@ -62,7 +66,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'invoices',
-        element: <div className="p-4 bg-card rounded-lg border">Invoices & Billing (Sprint 3)</div>,
+        element: <InvoicesListPage />,
+      },
+      {
+        path: 'invoices/:id',
+        element: <InvoiceDetailPage />,
       },
       {
         path: 'customers',
@@ -78,7 +86,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'cash',
-        element: <div className="p-4 bg-card rounded-lg border">Cash Drawer & Sessions (Sprint 3)</div>,
+        element: <CashDrawerPage />,
       },
       {
         path: 'reports',
@@ -89,6 +97,14 @@ export const router = createBrowserRouter([
         element: <SettingsPage />,
       },
     ],
+  },
+  {
+    path: '/invoices/:id/print',
+    element: (
+      <ProtectedRoute>
+        <PrintInvoicePage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '*',

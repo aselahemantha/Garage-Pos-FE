@@ -1,7 +1,9 @@
 import React from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/store';
 import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
+import { useActiveCashSession } from '@/features/billing/api';
+import { formatMoney } from '@/lib/format';
 import {
   Wrench,
   FileText,
@@ -13,11 +15,13 @@ import {
   LogOut,
   Search,
   CheckCircle2,
+  Lock,
 } from 'lucide-react';
 
 export const AppLayout: React.FC = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const { data: activeSession } = useActiveCashSession();
 
   const handleLogout = async () => {
     try {
@@ -134,10 +138,26 @@ export const AppLayout: React.FC = () => {
 
           {/* Right Header Controls: Drawer Status + Theme Switcher */}
           <div className="flex items-center gap-3">
-            <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-muted/50 text-xs font-medium text-muted-foreground">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Drawer open · 08:05</span>
-            </div>
+            <Link
+              to="/cash"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-muted/50 hover:bg-muted text-xs font-medium transition-colors"
+            >
+              {activeSession ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-foreground font-semibold">
+                    Drawer open · {formatMoney(activeSession.expected_cash, 'LKR')}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3.5 h-3.5 text-amber-600" />
+                  <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                    Drawer closed
+                  </span>
+                </>
+              )}
+            </Link>
 
             {/* Theme & Style Switcher */}
             <ThemeSwitcher />
