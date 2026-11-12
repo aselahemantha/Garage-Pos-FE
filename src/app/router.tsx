@@ -12,6 +12,7 @@ import { InvoicesListPage } from '@/features/billing/InvoicesListPage';
 import { InvoiceDetailPage } from '@/features/billing/InvoiceDetailPage';
 import { PrintInvoicePage } from '@/features/billing/PrintInvoicePage';
 import { CashDrawerPage } from '@/features/billing/CashDrawerPage';
+import { ReportsPage } from '@/features/reports/ReportsPage';
 import { useAuthStore } from '@/features/auth/store';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({
@@ -90,7 +91,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'reports',
-        element: <div className="p-4 bg-card rounded-lg border">Reports & Analytics (Sprint 6)</div>,
+        element: <ReportsPage />,
       },
       {
         path: 'settings',
