@@ -1,0 +1,203 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ========================================================
+     MODERN / WORKSHOP LEDGER THEME (Default)
+     ======================================================== */
+  :root,
+  [data-style="modern"] {
+    --background: #F3F3F0;
+    --card: #FFFFFF;
+    --card-foreground: #16171A;
+    --muted: #E9E9E5;
+    --muted-foreground: #5E6168;
+    --border: #D4D4CE;
+    --input: #D4D4CE;
+    --foreground: #16171A;
+
+    --primary: #C2410C;
+    --primary-hover: #9A3412;
+    --primary-soft: #FFEDD5;
+    --primary-foreground: #FFFFFF;
+
+    --destructive: #B91C1C;
+    --destructive-soft: #FEE2E2;
+    --destructive-foreground: #FFFFFF;
+
+    --warning: #A16207;
+    --warning-text: #854D0E;
+    --warning-soft: #FEF3C7;
+
+    --secondary: #E9E9E5;
+    --secondary-foreground: #16171A;
+    --ring: #C2410C;
+
+    /* Status Colors: Always color + icon + label */
+    --status-pending: #6D28D9;
+    --status-pending-soft: #EDE9FE;
+    --status-pending-text: #5B21B6;
+
+    --status-progress: #1D4ED8;
+    --status-progress-soft: #DBEAFE;
+    --status-progress-text: #1E40AF;
+
+    --status-completed: #15803D;
+    --status-completed-soft: #DCFCE7;
+    --status-completed-text: #166534;
+
+    --status-delivered: #475569;
+    --status-delivered-soft: #E2E8F0;
+    --status-delivered-text: #334155;
+  }
+
+  /* WORKSHOP DARK (Workshop lighting high-contrast) */
+  .dark:not([data-style="classic"]),
+  [data-style="modern"].dark,
+  [data-style="modern"] .dark {
+    --background: #111214;
+    --card: #1A1C1F;
+    --card-foreground: #F2F2F0;
+    --muted: #24272C;
+    --muted-foreground: #A6A9AF;
+    --border: #33363B;
+    --input: #33363B;
+    --foreground: #F2F2F0;
+
+    --primary: #F97316;
+    --primary-hover: #EA580C;
+    --primary-soft: rgba(249, 115, 22, 0.18);
+    --primary-foreground: #111214;
+
+    --destructive: #EF4444;
+    --destructive-soft: rgba(239, 68, 68, 0.18);
+    --destructive-foreground: #FFFFFF;
+
+    --warning: #F59E0B;
+    --warning-text: #FDE68A;
+    --warning-soft: rgba(245, 158, 11, 0.18);
+
+    --secondary: #24272C;
+    --secondary-foreground: #F2F2F0;
+    --ring: #F97316;
+
+    /* Status Colors lifted for dark ground */
+    --status-pending: #A78BFA;
+    --status-pending-soft: rgba(167, 139, 250, 0.18);
+    --status-pending-text: #DDD6FE;
+
+    --status-progress: #60A5FA;
+    --status-progress-soft: rgba(96, 165, 250, 0.18);
+    --status-progress-text: #BFDBFE;
+
+    --status-completed: #4ADE80;
+    --status-completed-soft: rgba(74, 222, 128, 0.18);
+    --status-completed-text: #BBF7D0;
+
+    --status-delivered: #94A3B8;
+    --status-delivered-soft: rgba(148, 163, 184, 0.18);
+    --status-delivered-text: #E2E8F0;
+  }
+
+  /* ========================================================
+     CLASSIC / CLEAN SLATE THEME (Clean Office style)
+     ======================================================== */
+  [data-style="classic"] {
+    --background: #F8FAFC;
+    --card: #FFFFFF;
+    --card-foreground: #0F172A;
+    --muted: #F1F5F9;
+    --muted-foreground: #64748B;
+    --border: #E2E8F0;
+    --input: #E2E8F0;
+    --foreground: #0F172A;
+
+    --primary: #2563EB;
+    --primary-hover: #1D4ED8;
+    --primary-soft: #DBEAFE;
+    --primary-foreground: #FFFFFF;
+
+    --destructive: #DC2626;
+    --destructive-soft: #FEE2E2;
+    --destructive-foreground: #FFFFFF;
+
+    --warning: #D97706;
+    --warning-text: #92400E;
+    --warning-soft: #FEF3C7;
+
+    --secondary: #F1F5F9;
+    --secondary-foreground: #0F172A;
+    --ring: #2563EB;
+
+    --status-pending: #7C3AED;
+    --status-pending-soft: #EDE9FE;
+    --status-pending-text: #6D28D9;
+
+    --status-progress: #2563EB;
+    --status-progress-soft: #DBEAFE;
+    --status-progress-text: #1D4ED8;
+
+    --status-completed: #16A34A;
+    --status-completed-soft: #DCFCE7;
+    --status-completed-text: #15803D;
+
+    --status-delivered: #64748B;
+    --status-delivered-soft: #F1F5F9;
+    --status-delivered-text: #475569;
+  }
+
+  [data-style="classic"].dark,
+  [data-style="classic"] .dark {
+    --background: #0F172A;
+    --card: #1E293B;
+    --card-foreground: #F8FAFC;
+    --muted: #334155;
+    --muted-foreground: #94A3B8;
+    --border: #334155;
+    --input: #334155;
+    --foreground: #F8FAFC;
+
+    --primary: #3B82F6;
+    --primary-hover: #2563EB;
+    --primary-soft: rgba(59, 130, 246, 0.2);
+    --primary-foreground: #FFFFFF;
+
+    --destructive: #EF4444;
+    --destructive-soft: rgba(239, 68, 68, 0.2);
+    --destructive-foreground: #FFFFFF;
+
+    --warning: #F59E0B;
+    --warning-text: #FDE68A;
+    --warning-soft: rgba(245, 158, 11, 0.2);
+
+    --secondary: #334155;
+    --secondary-foreground: #F8FAFC;
+    --ring: #3B82F6;
+
+    --status-pending: #A78BFA;
+    --status-pending-soft: rgba(167, 139, 250, 0.2);
+    --status-pending-text: #DDD6FE;
+
+    --status-progress: #60A5FA;
+    --status-progress-soft: rgba(96, 165, 250, 0.2);
+    --status-progress-text: #BFDBFE;
+
+    --status-completed: #4ADE80;
+    --status-completed-soft: rgba(74, 222, 128, 0.2);
+    --status-completed-text: #BBF7D0;
+
+    --status-delivered: #94A3B8;
+    --status-delivered-soft: rgba(148, 163, 184, 0.2);
+    --status-delivered-text: #E2E8F0;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground transition-colors duration-150 font-sans;
+  }
+}
