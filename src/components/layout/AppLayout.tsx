@@ -4,6 +4,7 @@ import { useAuthStore } from '@/features/auth/store';
 import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
 import { useActiveCashSession } from '@/features/billing/api';
 import { useLowStockReport } from '@/features/inventory/api';
+import { useSettings } from '@/features/settings/api';
 import { formatMoney } from '@/lib/format';
 import {
   Wrench,
@@ -25,6 +26,7 @@ export const AppLayout: React.FC = () => {
   const navigate = useNavigate();
   const { data: activeSession } = useActiveCashSession();
   const { data: lowStock } = useLowStockReport();
+  const { data: settings } = useSettings();
 
   const totalLowStock = (lowStock?.low_stock_count || 0) + (lowStock?.out_of_stock_count || 0);
 
@@ -70,7 +72,12 @@ export const AppLayout: React.FC = () => {
               <Wrench className="w-5 h-5" />
             </div>
             <div className="overflow-hidden">
-              <h1 className="font-bold text-sm tracking-wide text-white truncate">[Garage Name]</h1>
+              <h1
+                className="font-bold text-sm tracking-wide text-white truncate"
+                title={settings?.business_name || 'Auto Care Garage'}
+              >
+                {settings?.business_name || 'Auto Care Garage'}
+              </h1>
               <span className="text-xs text-slate-400 block truncate">Auto care</span>
             </div>
           </div>
