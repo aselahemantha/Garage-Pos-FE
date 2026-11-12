@@ -63,3 +63,10 @@ export interface CreateJobCardInput {
   promised_by?: string;
   items: CreateJobItemInput[];
 }
+
+export interface UpdateJobCardInput {
+  mileage_in?: number;
+  complaint?: string;
+  notes?: string;
+  promised_by?: string;
+}

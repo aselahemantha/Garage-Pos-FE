@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { JobBoardPage } from '@/features/jobs/JobBoardPage';
 import { NewJobCardPage } from '@/features/jobs/NewJobCardPage';
+import { JobDetailPage } from '@/features/jobs/JobDetailPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
 import { CatalogPage } from '@/features/catalog/CatalogPage';
 import { InventoryPage } from '@/features/inventory/InventoryPage';
@@ -63,7 +64,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'jobs/:id',
-        element: <div className="p-4 bg-card rounded-lg border">Job Detail (Sprint 2)</div>,
+        element: <JobDetailPage />,
       },
       {
         path: 'invoices',

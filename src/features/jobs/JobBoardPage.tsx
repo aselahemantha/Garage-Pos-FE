@@ -278,7 +278,11 @@ export const JobBoardPage: React.FC = () => {
 
           <div className="space-y-3">
             {pendingJobs.map((j) => (
-              <div key={j.id} className="p-4 bg-card rounded-xl border border-border shadow-soft space-y-3">
+              <div
+                key={j.id}
+                onClick={() => navigate(`/jobs/${j.id}`)}
+                className="p-4 bg-card rounded-xl border border-border shadow-soft space-y-3 cursor-pointer hover:border-primary/50 transition-all"
+              >
                 <div className="flex items-start justify-between gap-2">
                   <Plate plate={j.plate_no} size="md" />
                   <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
@@ -295,7 +299,10 @@ export const JobBoardPage: React.FC = () => {
                 <div className="flex items-center justify-between pt-1 border-t border-border">
                   <span className="text-xs text-muted-foreground font-medium">{j.mechanic}</span>
                   <button
-                    onClick={() => handleAdvanceStatus(j.id, j.status)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAdvanceStatus(j.id, j.status);
+                    }}
                     className="text-xs font-semibold px-2.5 py-1 rounded border border-border bg-muted hover:bg-border transition-colors flex items-center gap-1"
                   >
                     <span>Start Work</span>
@@ -321,7 +328,11 @@ export const JobBoardPage: React.FC = () => {
 
           <div className="space-y-3">
             {inProgressJobs.map((j) => (
-              <div key={j.id} className="p-4 bg-card rounded-xl border border-border shadow-soft space-y-3">
+              <div
+                key={j.id}
+                onClick={() => navigate(`/jobs/${j.id}`)}
+                className="p-4 bg-card rounded-xl border border-border shadow-soft space-y-3 cursor-pointer hover:border-primary/50 transition-all"
+              >
                 <div className="flex items-start justify-between gap-2">
                   <Plate plate={j.plate_no} size="md" />
                   <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
@@ -349,7 +360,10 @@ export const JobBoardPage: React.FC = () => {
                     <span className="text-xs font-medium text-foreground">{j.mechanic}</span>
                   </div>
                   <button
-                    onClick={() => handleAdvanceStatus(j.id, j.status)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAdvanceStatus(j.id, j.status);
+                    }}
                     className="text-xs font-bold px-2.5 py-1 rounded bg-status-completed-soft text-status-completed-text hover:bg-status-completed/20 transition-colors flex items-center gap-1"
                   >
                     <span>Complete</span>
@@ -375,7 +389,11 @@ export const JobBoardPage: React.FC = () => {
 
           <div className="space-y-3">
             {completedJobs.map((j) => (
-              <div key={j.id} className="p-4 bg-card rounded-xl border border-border shadow-soft space-y-3">
+              <div
+                key={j.id}
+                onClick={() => navigate(`/jobs/${j.id}`)}
+                className="p-4 bg-card rounded-xl border border-border shadow-soft space-y-3 cursor-pointer hover:border-primary/50 transition-all"
+              >
                 <div className="flex items-start justify-between gap-2">
                   <Plate plate={j.plate_no} size="md" />
                   <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
@@ -397,7 +415,8 @@ export const JobBoardPage: React.FC = () => {
                 <button
                   type="button"
                   disabled={issueInvoiceMutation.isPending}
-                  onClick={async () => {
+                  onClick={async (e) => {
+                    e.stopPropagation();
                     try {
                       const inv = await issueInvoiceMutation.mutateAsync({ job_card_id: j.id });
                       navigate(`/invoices/${inv.id}`);
@@ -429,7 +448,11 @@ export const JobBoardPage: React.FC = () => {
 
           <div className="space-y-3">
             {deliveredJobs.map((j) => (
-              <div key={j.id} className="p-4 bg-card rounded-xl border border-border shadow-soft space-y-3 opacity-90">
+              <div
+                key={j.id}
+                onClick={() => navigate(`/jobs/${j.id}`)}
+                className="p-4 bg-card rounded-xl border border-border shadow-soft space-y-3 opacity-90 cursor-pointer hover:border-primary/50 transition-all"
+              >
                 <div className="flex items-start justify-between gap-2">
                   <Plate plate={j.plate_no} size="md" />
                   <span className="text-xs text-muted-foreground">{j.time}</span>
