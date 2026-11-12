@@ -50,10 +50,13 @@ export const VehicleHistoryPage: React.FC = () => {
     );
   }
 
-  const { vehicle, customer, jobs, invoices } = history;
+  const vehicle = history.vehicle;
+  const customer = history.customer;
+  const jobs = history.jobs || [];
+  const invoices = history.invoices || [];
 
-  const totalSpent = invoices.reduce((sum, inv) => sum + inv.total, 0);
-  const latestMileage = vehicle.last_mileage || (jobs[0]?.mileage_in ?? 0);
+  const totalSpent = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
+  const latestMileage = vehicle?.last_mileage || (jobs[0]?.mileage_in ?? 0);
   const nextServiceMileage = latestMileage > 0 ? latestMileage + 5000 : null;
 
   const getStatusBadge = (status: string) => {
