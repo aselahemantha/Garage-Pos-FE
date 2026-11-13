@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useServices } from '@/features/catalog/api';
+import { resolveServicePrice, ServiceItem } from '@/features/catalog/types';
 import { useParts } from '@/features/inventory/api';
 import { useCreateJob } from './api';
 import { CreateJobItemInput } from './types';
@@ -182,17 +183,32 @@ export const NewJobCardPage: React.FC = () => {
   };
 
   // Toggle item selection
-  const toggleService = (svc: { id: number; name: string; price: number }) => {
+  const toggleService = (svc: ServiceItem) => {
     const exists = selectedItems.some((i) => i.item_type === 'service' && i.service_id === svc.id);
     if (exists) {
       setSelectedItems(selectedItems.filter((i) => !(i.item_type === 'service' && i.service_id === svc.id)));
     } else {
+      const { price } = resolveServicePrice(svc, vehicleData?.make, vehicleData?.model);
       setSelectedItems([
         ...selectedItems,
-        { item_type: 'service', service_id: svc.id, description: svc.name, qty: 1, unit_price: svc.price, discount: 0 },
+        { item_type: 'service', service_id: svc.id, description: svc.name, qty: 1, unit_price: price, discount: 0 },
       ]);
     }
   };
+
+  // Re-resolve service prices when selected vehicle changes
+  React.useEffect(() => {
+    if (!services || !vehicleData) return;
+    setSelectedItems((prev) =>
+      prev.map((item) => {
+        if (item.item_type !== 'service' || !item.service_id) return item;
+        const svc = services.find((s) => s.id === item.service_id);
+        if (!svc) return item;
+        const { price } = resolveServicePrice(svc, vehicleData.make, vehicleData.model);
+        return price !== item.unit_price ? { ...item, unit_price: price } : item;
+      })
+    );
+  }, [vehicleData?.make, vehicleData?.model, services]);
 
   const togglePart = (part: { id: number; name: string; sell_price: number }) => {
     const exists = selectedItems.some((i) => i.item_type === 'part' && i.part_id === part.id);
@@ -532,17 +548,23 @@ export const NewJobCardPage: React.FC = () => {
                   ?.filter((s) => !catalogSearch || s.name.toLowerCase().includes(catalogSearch.toLowerCase()))
                   .map((s) => {
                     const isAdded = selectedItems.some((i) => i.item_type === 'service' && i.service_id === s.id);
+                    const resolved = resolveServicePrice(s, vehicleData?.make, vehicleData?.model);
                     return (
                       <div
                         key={`s-${s.id}`}
                         className="p-3 rounded-lg border border-border bg-background flex items-center justify-between gap-3 hover:border-primary/40 transition-colors"
                       >
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-sm text-foreground">{s.name}</span>
                             <span className="text-[11px] text-muted-foreground font-mono">
                               ({s.category_name})
                             </span>
+                            {resolved.matchedVehicle && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-semibold">
+                                {resolved.matchedVehicle} rate
+                              </span>
+                            )}
                           </div>
                           {s.description && (
                             <p className="text-xs text-muted-foreground">{s.description}</p>
@@ -551,7 +573,7 @@ export const NewJobCardPage: React.FC = () => {
 
                         <div className="flex items-center gap-3 shrink-0">
                           <span className="font-plate text-base font-bold text-foreground">
-                            {formatMoney(s.price, 'LKR')}
+                            {formatMoney(resolved.price, 'LKR')}
                           </span>
                           <button
                             type="button"

@@ -106,6 +106,24 @@ export function useApplyInvoiceDiscount(invoiceId: number | string) {
   });
 }
 
+export function useApplyInvoiceItemDiscount(invoiceId: number | string) {
+  const queryClient = useQueryClient();
+  const idStr = String(invoiceId);
+  return useMutation({
+    mutationFn: ({ itemId, payload }: { itemId: number; payload: ApplyDiscountPayload }) =>
+      apiClient<{ data: InvoiceDetail }>(`/invoices/${idStr}/items/${itemId}/discount`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }).then((res) => res.data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['invoice', idStr], data);
+      queryClient.invalidateQueries({ queryKey: ['invoice', idStr] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    },
+  });
+}
+
 // Cash Sessions
 export function useActiveCashSession() {
   return useQuery({

@@ -1,12 +1,24 @@
 import React, { useState } from 'react';
-import { useCategories, useServices, useCreateCategory, useCreateService } from './api';
-import { Wrench, Plus, Clock, X, Loader2, FolderPlus } from 'lucide-react';
+import {
+  useCategories,
+  useServices,
+  useCreateCategory,
+  useCreateService,
+  useUpsertVehiclePrice,
+  useDeleteVehiclePrice,
+} from './api';
+import { Wrench, Plus, Clock, X, Loader2, FolderPlus, Car, Trash2 } from 'lucide-react';
 import { formatMoney } from '@/lib/format';
 
 export const CatalogPage: React.FC = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>(undefined);
   const [isAddServiceOpen, setIsAddServiceOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [vehiclePricingSvcId, setVehiclePricingSvcId] = useState<number | null>(null);
+  const [vpMake, setVpMake] = useState('');
+  const [vpModel, setVpModel] = useState('');
+  const [vpPrice, setVpPrice] = useState('');
+  const [vpError, setVpError] = useState<string | null>(null);
 
   // New Category State
   const [catName, setCatName] = useState('');
@@ -23,6 +35,36 @@ export const CatalogPage: React.FC = () => {
 
   const createCategory = useCreateCategory();
   const createService = useCreateService();
+  const upsertVehiclePrice = useUpsertVehiclePrice();
+  const deleteVehiclePrice = useDeleteVehiclePrice();
+
+  const activeVehiclePricingSvc = services?.find((s) => s.id === vehiclePricingSvcId) ?? null;
+
+  const handleAddVehiclePrice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeVehiclePricingSvc || !vpModel.trim() || !vpPrice) return;
+    setVpError(null);
+    const minor = Math.round(parseFloat(vpPrice) * 100);
+    if (isNaN(minor) || minor < 0) {
+      setVpError('Enter a valid price');
+      return;
+    }
+    try {
+      await upsertVehiclePrice.mutateAsync({
+        serviceId: activeVehiclePricingSvc.id,
+        input: {
+          vehicle_make: vpMake.trim(),
+          vehicle_model: vpModel.trim(),
+          price: minor,
+        },
+      });
+      setVpMake('');
+      setVpModel('');
+      setVpPrice('');
+    } catch (err: unknown) {
+      setVpError(err instanceof Error ? err.message : 'Failed to save vehicle price');
+    }
+  };
 
   const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,10 +196,30 @@ export const CatalogPage: React.FC = () => {
                 )}
               </div>
 
-              <div className="mt-5 pt-3 border-t border-border flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{s.est_minutes ? `~${s.est_minutes} min` : 'Variable time'}</span>
+              <div className="mt-5 pt-3 border-t border-border flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>{s.est_minutes ? `~${s.est_minutes} min` : 'Variable time'}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVehiclePricingSvcId(s.id);
+                      setVpError(null);
+                    }}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border transition-colors ${
+                      (s.vehicle_prices?.length ?? 0) > 0
+                        ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
+                        : 'bg-background text-muted-foreground border-border hover:text-foreground hover:bg-muted'
+                    }`}
+                    title="Configure vehicle-specific prices"
+                  >
+                    <Car className="w-3 h-3" />
+                    {(s.vehicle_prices?.length ?? 0) > 0
+                      ? `${s.vehicle_prices.length} vehicle${s.vehicle_prices.length > 1 ? 's' : ''}`
+                      : 'Vehicle prices'}
+                  </button>
                 </div>
 
                 <div className="text-right">
@@ -330,6 +392,138 @@ export const CatalogPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Vehicle-Specific Pricing Modal */}
+      {activeVehiclePricingSvc && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-card w-full max-w-lg rounded-xl border border-border shadow-modal p-6">
+            <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
+              <div>
+                <h2 className="text-xl font-condensed font-bold text-foreground">
+                  Vehicle-Specific Prices
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {activeVehiclePricingSvc.name} · Base price{' '}
+                  <span className="font-semibold text-foreground">
+                    {formatMoney(activeVehiclePricingSvc.price, 'LKR')}
+                  </span>
+                </p>
+              </div>
+              <button
+                onClick={() => setVehiclePricingSvcId(null)}
+                className="p-1 text-muted-foreground hover:text-foreground rounded"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {vpError && (
+              <div className="mb-3 p-2.5 bg-destructive/10 border border-destructive/20 rounded-lg text-xs text-destructive">
+                {vpError}
+              </div>
+            )}
+
+            <form onSubmit={handleAddVehiclePrice} className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 mb-5">
+              <div className="sm:col-span-3">
+                <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+                  Make (optional)
+                </label>
+                <input
+                  type="text"
+                  value={vpMake}
+                  onChange={(e) => setVpMake(e.target.value)}
+                  placeholder="Suzuki"
+                  className="w-full px-2.5 py-2 text-xs bg-background border border-border rounded-lg min-h-[38px]"
+                />
+              </div>
+              <div className="sm:col-span-4">
+                <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+                  Model *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={vpModel}
+                  onChange={(e) => setVpModel(e.target.value)}
+                  placeholder="Wagon R / Alto / Premio"
+                  className="w-full px-2.5 py-2 text-xs bg-background border border-border rounded-lg min-h-[38px]"
+                />
+              </div>
+              <div className="sm:col-span-3">
+                <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+                  Price (LKR) *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={vpPrice}
+                  onChange={(e) => setVpPrice(e.target.value)}
+                  placeholder="16500"
+                  className="w-full px-2.5 py-2 text-xs bg-background border border-border rounded-lg min-h-[38px]"
+                />
+              </div>
+              <div className="sm:col-span-2 flex items-end">
+                <button
+                  type="submit"
+                  disabled={upsertVehiclePrice.isPending}
+                  className="w-full px-3 py-2 bg-primary hover:bg-primary-hover text-primary-foreground font-semibold text-xs rounded-lg min-h-[38px] disabled:opacity-50"
+                >
+                  {upsertVehiclePrice.isPending ? '...' : 'Save'}
+                </button>
+              </div>
+            </form>
+
+            <div className="border-t border-border pt-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                Configured Vehicle Overrides ({activeVehiclePricingSvc.vehicle_prices?.length ?? 0})
+              </h3>
+              {activeVehiclePricingSvc.vehicle_prices &&
+              activeVehiclePricingSvc.vehicle_prices.length > 0 ? (
+                <div className="divide-y divide-border max-h-60 overflow-y-auto border border-border rounded-lg">
+                  {activeVehiclePricingSvc.vehicle_prices.map((vp) => (
+                    <div
+                      key={vp.id}
+                      className="flex items-center justify-between px-3 py-2.5 bg-background/50"
+                    >
+                      <div className="flex items-center gap-2 text-xs">
+                        <Car className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="font-semibold text-foreground">
+                          {vp.vehicle_make ? `${vp.vehicle_make} ` : ''}
+                          {vp.vehicle_model}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-plate font-bold text-sm text-foreground">
+                          {formatMoney(vp.price, 'LKR')}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            deleteVehiclePrice.mutate({
+                              serviceId: activeVehiclePricingSvc.id,
+                              priceId: vp.id,
+                            })
+                          }
+                          disabled={deleteVehiclePrice.isPending}
+                          className="p-1 text-muted-foreground hover:text-destructive rounded transition-colors"
+                          title="Remove override"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground py-4 text-center bg-muted/30 rounded-lg border border-dashed border-border">
+                  No vehicle-specific prices configured yet. The base price applies to all vehicles.
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -8,6 +8,7 @@ import {
   useUpdateJob,
 } from './api';
 import { useServices } from '@/features/catalog/api';
+import { resolveServicePrice } from '@/features/catalog/types';
 import { useParts } from '@/features/inventory/api';
 import { useIssueInvoice } from '@/features/billing/api';
 import { Plate } from '@/components/ui/Plate';
@@ -149,7 +150,7 @@ export const JobDetailPage: React.FC = () => {
       const svc = catalogServices?.find((s) => s.id === selectedServiceId);
       if (svc) {
         desc = svc.name;
-        price = svc.price;
+        price = resolveServicePrice(svc, job.vehicle_make, job.vehicle_model).price;
       }
     } else if (itemTypeTab === 'part' && selectedPartId) {
       const prt = inventoryParts?.find((p) => p.id === selectedPartId);
@@ -678,16 +679,22 @@ export const JobDetailPage: React.FC = () => {
                       const sId = Number(e.target.value);
                       setSelectedServiceId(sId);
                       const s = catalogServices?.find((x) => x.id === sId);
-                      if (s) setItemUnitPrice(s.price);
+                      if (s) {
+                        setItemUnitPrice(resolveServicePrice(s, job.vehicle_make, job.vehicle_model).price);
+                      }
                     }}
                     className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-foreground text-xs focus:ring-2 focus:ring-primary focus:outline-none"
                   >
                     <option value="">-- Choose from Catalog --</option>
-                    {catalogServices?.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({formatMoney(s.price, 'LKR')})
-                      </option>
-                    ))}
+                    {catalogServices?.map((s) => {
+                      const resolved = resolveServicePrice(s, job.vehicle_make, job.vehicle_model);
+                      return (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({formatMoney(resolved.price, 'LKR')}
+                          {resolved.matchedVehicle ? ` · ${resolved.matchedVehicle}` : ''})
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               ) : (

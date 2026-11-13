@@ -43,6 +43,7 @@ export interface InvoiceSummary {
   plate_no?: string;
   status: InvoiceStatus;
   subtotal: number;
+  bill_discount: number;
   discount_total: number;
   tax_bps: number;
   tax_total: number;
@@ -71,6 +72,7 @@ export interface InvoiceDetail {
   vehicle_color?: string;
   status: InvoiceStatus;
   subtotal: number;
+  bill_discount: number;
   discount_total: number;
   tax_bps: number;
   tax_total: number;

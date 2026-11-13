@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
-import { ServiceCategory, ServiceItem, CreateCategoryInput, CreateServiceInput } from './types';
+import { ServiceCategory, ServiceItem, ServiceVehiclePrice, CreateCategoryInput, CreateServiceInput, UpsertVehiclePriceInput } from './types';
 
 export function useCategories() {
   return useQuery({
@@ -42,6 +42,33 @@ export function useCreateService() {
         method: 'POST',
         body: JSON.stringify(input),
       }).then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+    },
+  });
+}
+
+export function useUpsertVehiclePrice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ serviceId, input }: { serviceId: number; input: UpsertVehiclePriceInput }) =>
+      apiClient<{ data: ServiceVehiclePrice }>(`/services/${serviceId}/vehicle-prices`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }).then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+    },
+  });
+}
+
+export function useDeleteVehiclePrice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ serviceId, priceId }: { serviceId: number; priceId: number }) =>
+      apiClient(`/services/${serviceId}/vehicle-prices/${priceId}`, {
+        method: 'DELETE',
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
     },

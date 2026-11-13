@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useInvoice, useRecordPayment, useVoidInvoice, useActiveCashSession, useApplyInvoiceDiscount } from './api';
+import {
+  useInvoice,
+  useRecordPayment,
+  useVoidInvoice,
+  useActiveCashSession,
+  useApplyInvoiceDiscount,
+  useApplyInvoiceItemDiscount,
+} from './api';
 import { Plate } from '@/components/ui/Plate';
 import { formatMoney, formatDate } from '@/lib/format';
 import { useAuthStore } from '@/features/auth/store';
 import { PaymentSuccessModal } from './PaymentSuccessModal';
-import { PaymentMethod } from './types';
+import { PaymentMethod, InvoiceItem } from './types';
 import {
   ArrowLeft,
   Printer,
@@ -34,6 +41,7 @@ export const InvoiceDetailPage: React.FC = () => {
   const recordPaymentMutation = useRecordPayment(Number(id));
   const voidMutation = useVoidInvoice(Number(id));
   const applyDiscountMutation = useApplyInvoiceDiscount(Number(id));
+  const applyItemDiscountMutation = useApplyInvoiceItemDiscount(Number(id));
 
   // Payment form state
   const [method, setMethod] = useState<PaymentMethod>('cash');
@@ -52,12 +60,18 @@ export const InvoiceDetailPage: React.FC = () => {
   const [showVoidModal, setShowVoidModal] = useState<boolean>(false);
   const [voidReason, setVoidReason] = useState<string>('');
 
-  // Discount modal state
+  // Discount modal state (bill-level)
   const [showDiscountModal, setShowDiscountModal] = useState<boolean>(false);
   const [discountType, setDiscountType] = useState<'amount' | 'percent'>('amount');
   const [discountValue, setDiscountValue] = useState<string>('');
   const [discountReason, setDiscountReason] = useState<string>('');
   const [discountError, setDiscountError] = useState<string | null>(null);
+
+  // Per-item discount modal state
+  const [editingDiscountItem, setEditingDiscountItem] = useState<InvoiceItem | null>(null);
+  const [itemDiscType, setItemDiscType] = useState<'amount' | 'percent'>('percent');
+  const [itemDiscValue, setItemDiscValue] = useState<string>('');
+  const [itemDiscError, setItemDiscError] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -163,10 +177,13 @@ export const InvoiceDetailPage: React.FC = () => {
     invoice.balance > 0 &&
     (user?.role === 'owner' || user?.role === 'advisor');
 
+  const itemDiscountsSum = invoice ? invoice.items.reduce((sum, it) => sum + it.discount, 0) : 0;
+  const remainingSubtotal = invoice ? Math.max(0, invoice.subtotal - itemDiscountsSum) : 0;
+
   const handleOpenDiscountModal = () => {
     if (!invoice) return;
     setDiscountType('amount');
-    setDiscountValue(invoice.discount_total > 0 ? (invoice.discount_total / 100).toFixed(2) : '');
+    setDiscountValue(invoice.bill_discount > 0 ? (invoice.bill_discount / 100).toFixed(2) : '');
     setDiscountReason('');
     setDiscountError(null);
     setShowDiscountModal(true);
@@ -176,11 +193,10 @@ export const InvoiceDetailPage: React.FC = () => {
   const previewDiscountMinor =
     discountType === 'amount'
       ? Math.round(valFloat * 100)
-      : invoice
-      ? Math.round((invoice.subtotal * valFloat) / 100)
-      : 0;
+      : Math.round((remainingSubtotal * valFloat) / 100);
 
-  const previewNetSubtotal = invoice ? Math.max(0, invoice.subtotal - previewDiscountMinor) : 0;
+  const previewTotalDiscountMinor = itemDiscountsSum + previewDiscountMinor;
+  const previewNetSubtotal = invoice ? Math.max(0, invoice.subtotal - previewTotalDiscountMinor) : 0;
   const previewTaxMinor =
     invoice && invoice.tax_bps > 0
       ? Math.round((previewNetSubtotal * invoice.tax_bps + 5000) / 10000)
@@ -195,8 +211,8 @@ export const InvoiceDetailPage: React.FC = () => {
       setDiscountError('Discount cannot be negative');
       return;
     }
-    if (invoice && previewDiscountMinor > invoice.subtotal) {
-      setDiscountError('Discount cannot exceed subtotal');
+    if (previewDiscountMinor > remainingSubtotal) {
+      setDiscountError('Bill discount cannot exceed remaining subtotal after item discounts');
       return;
     }
 
@@ -216,6 +232,55 @@ export const InvoiceDetailPage: React.FC = () => {
       setShowDiscountModal(false);
     } catch (err: unknown) {
       setDiscountError(err instanceof Error ? err.message : 'Failed to apply discount');
+    }
+  };
+
+  const handleOpenItemDiscountModal = (it: InvoiceItem) => {
+    setEditingDiscountItem(it);
+    setItemDiscError(null);
+    if (it.discount > 0) {
+      setItemDiscType('amount');
+      setItemDiscValue((it.discount / 100).toFixed(2));
+    } else {
+      setItemDiscType('percent');
+      setItemDiscValue('');
+    }
+  };
+
+  const itemGrossMinor = editingDiscountItem
+    ? Math.round(editingDiscountItem.qty * editingDiscountItem.unit_price)
+    : 0;
+  const itemValFloat = parseFloat(itemDiscValue) || 0;
+  const previewItemDiscMinor =
+    itemDiscType === 'amount'
+      ? Math.round(itemValFloat * 100)
+      : Math.round((itemGrossMinor * itemValFloat) / 100);
+
+  const handleApplyItemDiscountSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDiscountItem) return;
+    setItemDiscError(null);
+    if (previewItemDiscMinor < 0) {
+      setItemDiscError('Discount cannot be negative');
+      return;
+    }
+    if (previewItemDiscMinor > itemGrossMinor) {
+      setItemDiscError('Item discount cannot exceed line amount');
+      return;
+    }
+
+    try {
+      await applyItemDiscountMutation.mutateAsync({
+        itemId: editingDiscountItem.id,
+        payload:
+          itemDiscType === 'amount'
+            ? { discount_amount: previewItemDiscMinor }
+            : { discount_percent: itemValFloat },
+      });
+      await refetch();
+      setEditingDiscountItem(null);
+    } catch (err: unknown) {
+      setItemDiscError(err instanceof Error ? err.message : 'Failed to apply item discount');
     }
   };
 
@@ -442,7 +507,26 @@ export const InvoiceDetailPage: React.FC = () => {
                         {formatMoney(it.unit_price, 'LKR')}
                       </td>
                       <td className="py-3 px-3 text-right font-mono text-muted-foreground">
-                        {it.discount > 0 ? `-${formatMoney(it.discount, 'LKR')}` : '-'}
+                        {canApplyDiscount ? (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenItemDiscountModal(it)}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
+                              it.discount > 0
+                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
+                                : 'text-primary hover:bg-primary/10'
+                            }`}
+                            title="Apply or edit discount for this line item"
+                          >
+                            {it.discount > 0 ? `-${formatMoney(it.discount, 'LKR')}` : '+ Disc'}
+                          </button>
+                        ) : it.discount > 0 ? (
+                          <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                            -{formatMoney(it.discount, 'LKR')}
+                          </span>
+                        ) : (
+                          '-'
+                        )}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-foreground">
                         {formatMoney(it.line_total, 'LKR')}
@@ -461,9 +545,17 @@ export const InvoiceDetailPage: React.FC = () => {
                   {formatMoney(invoice.subtotal, 'LKR')}
                 </span>
               </div>
+              {itemDiscountsSum > 0 && (
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span>Item Discounts:</span>
+                  <span className="font-mono font-semibold text-amber-600 dark:text-amber-400">
+                    -{formatMoney(itemDiscountsSum, 'LKR')}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between items-center text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <span>Discount Total:</span>
+                  <span>Bill Discount:</span>
                   {canApplyDiscount && (
                     <button
                       type="button"
@@ -471,16 +563,24 @@ export const InvoiceDetailPage: React.FC = () => {
                       className="text-[11px] text-primary font-bold hover:underline inline-flex items-center gap-1"
                     >
                       <Tag className="w-3 h-3" />
-                      <span>{invoice.discount_total > 0 ? 'Edit Discount' : '+ Add Discount'}</span>
+                      <span>{invoice.bill_discount > 0 ? 'Edit Bill Discount' : '+ Add Bill Discount'}</span>
                     </button>
                   )}
                 </div>
-                <span className={`font-mono font-semibold ${invoice.discount_total > 0 ? 'text-amber-600 dark:text-amber-400 font-bold' : 'text-foreground'}`}>
-                  {invoice.discount_total > 0
-                    ? `-${formatMoney(invoice.discount_total, 'LKR')}`
+                <span className={`font-mono font-semibold ${invoice.bill_discount > 0 ? 'text-amber-600 dark:text-amber-400 font-bold' : 'text-foreground'}`}>
+                  {invoice.bill_discount > 0
+                    ? `-${formatMoney(invoice.bill_discount, 'LKR')}`
                     : 'LKR 0.00'}
                 </span>
               </div>
+              {invoice.discount_total > 0 && itemDiscountsSum > 0 && (
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span>Total Discount:</span>
+                  <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                    -{formatMoney(invoice.discount_total, 'LKR')}
+                  </span>
+                </div>
+              )}
               {invoice.tax_total > 0 && (
                 <div className="flex justify-between text-muted-foreground">
                   <span>VAT ({invoice.tax_bps / 100}%):</span>
@@ -983,8 +1083,16 @@ export const InvoiceDetailPage: React.FC = () => {
                   <span>Gross Subtotal:</span>
                   <span className="font-mono font-semibold">{formatMoney(invoice.subtotal, 'LKR')}</span>
                 </div>
+                {itemDiscountsSum > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Item Discounts:</span>
+                    <span className="font-mono font-semibold text-amber-600 dark:text-amber-400">
+                      -{formatMoney(itemDiscountsSum, 'LKR')}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-amber-600 dark:text-amber-400 font-medium">
-                  <span>Applied Discount:</span>
+                  <span>Bill Discount:</span>
                   <span className="font-mono font-bold">-{formatMoney(previewDiscountMinor, 'LKR')}</span>
                 </div>
                 {invoice.tax_bps > 0 && (
@@ -1021,6 +1129,143 @@ export const InvoiceDetailPage: React.FC = () => {
                   className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition-colors shadow-md disabled:opacity-50"
                 >
                   {applyDiscountMutation.isPending ? 'Saving...' : 'Apply Discount'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Per-Item Discount Modal */}
+      {editingDiscountItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <Tag className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-foreground">Line Item Discount</h3>
+                  <p className="text-xs text-muted-foreground truncate max-w-[260px]">
+                    {editingDiscountItem.description} · {formatMoney(itemGrossMinor, 'LKR')}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingDiscountItem(null)}
+                className="p-1 text-muted-foreground hover:text-foreground rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {itemDiscError && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{itemDiscError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleApplyItemDiscountSubmit} className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-2 bg-muted/40 p-1 rounded-xl border border-border">
+                <button
+                  type="button"
+                  onClick={() => setItemDiscType('percent')}
+                  className={`py-2 px-3 rounded-lg font-bold text-xs transition-colors flex items-center justify-center gap-1.5 ${
+                    itemDiscType === 'percent'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Percent className="w-3.5 h-3.5" />
+                  <span>Percentage (%)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setItemDiscType('amount')}
+                  className={`py-2 px-3 rounded-lg font-bold text-xs transition-colors flex items-center justify-center gap-1.5 ${
+                    itemDiscType === 'amount'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <span>Fixed Amount (LKR)</span>
+                </button>
+              </div>
+
+              {itemDiscType === 'percent' && (
+                <div className="flex flex-wrap gap-1.5">
+                  {[5, 10, 15, 20, 25, 0].map((pct) => (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => setItemDiscValue(String(pct))}
+                      className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors ${
+                        itemDiscValue === String(pct)
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background border-border text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      {pct === 0 ? 'Clear (0%)' : `${pct}%`}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div>
+                <label className="font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                  {itemDiscType === 'amount' ? 'Discount Amount (LKR)' : 'Discount Percentage (%)'}
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step={itemDiscType === 'amount' ? '0.01' : '0.1'}
+                    min="0"
+                    max={itemDiscType === 'amount' ? (itemGrossMinor / 100).toFixed(2) : '100'}
+                    placeholder={itemDiscType === 'amount' ? 'e.g. 500.00' : 'e.g. 10'}
+                    value={itemDiscValue}
+                    onChange={(e) => setItemDiscValue(e.target.value)}
+                    required
+                    className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-foreground font-mono font-bold text-base focus:ring-2 focus:ring-primary focus:outline-none"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">
+                    {itemDiscType === 'amount' ? 'LKR' : '%'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-muted/30 border border-border rounded-xl space-y-1.5">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Line Amount:</span>
+                  <span className="font-mono font-semibold">{formatMoney(itemGrossMinor, 'LKR')}</span>
+                </div>
+                <div className="flex justify-between text-amber-600 dark:text-amber-400 font-medium">
+                  <span>Item Discount:</span>
+                  <span className="font-mono font-bold">-{formatMoney(previewItemDiscMinor, 'LKR')}</span>
+                </div>
+                <div className="flex justify-between font-bold text-sm text-foreground pt-1.5 border-t border-border">
+                  <span>New Line Total:</span>
+                  <span className="font-mono text-primary font-black">
+                    {formatMoney(Math.max(0, itemGrossMinor - previewItemDiscMinor), 'LKR')}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingDiscountItem(null)}
+                  className="px-4 py-2 rounded-xl border border-border text-xs font-medium hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={applyItemDiscountMutation.isPending}
+                  className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition-colors shadow-md disabled:opacity-50"
+                >
+                  {applyItemDiscountMutation.isPending ? 'Saving...' : 'Apply Item Discount'}
                 </button>
               </div>
             </form>
