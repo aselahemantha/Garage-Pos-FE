@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://garage-pos-api.onrender.com/api/:path*"
+      "destination": "https://garage-pos-be.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",
