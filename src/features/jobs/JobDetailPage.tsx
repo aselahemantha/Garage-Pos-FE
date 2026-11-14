@@ -13,6 +13,8 @@ import { useParts } from '@/features/inventory/api';
 import { useIssueInvoice } from '@/features/billing/api';
 import { Plate } from '@/components/ui/Plate';
 import { formatMoney, formatDate } from '@/lib/format';
+import { buildJobWhatsAppUrl, buildJobTrackingUrl } from '@/lib/whatsapp';
+import { useSettings } from '@/features/settings/api';
 import {
   ArrowLeft,
   Clock,
@@ -32,6 +34,9 @@ import {
   X,
   Smartphone,
   Printer,
+  MessageCircle,
+  Link2,
+  Check,
 } from 'lucide-react';
 
 export const JobDetailPage: React.FC = () => {
@@ -47,6 +52,8 @@ export const JobDetailPage: React.FC = () => {
 
   const { data: catalogServices } = useServices();
   const { data: inventoryParts } = useParts();
+  const { data: settings } = useSettings();
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // Technician / Floor Mode View Toggle
   const [technicianMode, setTechnicianMode] = useState<boolean>(false);
@@ -252,7 +259,60 @@ export const JobDetailPage: React.FC = () => {
         </div>
 
         {/* Action Controls & Technician Mode Switcher */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* WhatsApp Customer Update */}
+          {job.tracking_token && job.customer_phone && (
+            <a
+              href={buildJobWhatsAppUrl({
+                phone: job.customer_phone,
+                customerName: job.customer_name,
+                plateNo: job.plate_no,
+                vehicleMake: job.vehicle_make,
+                vehicleModel: job.vehicle_model,
+                jobNo: job.job_no,
+                status: job.status,
+                trackingToken: job.tracking_token,
+                totalMinor: job.total_minor,
+                currency: settings?.currency_code || 'LKR',
+                garageName: settings?.garage_name || 'Auto Care Garage',
+                itemsCount: job.items.length,
+              })}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-semibold text-xs transition-colors shadow-xs"
+              title="Send status & tracking link via WhatsApp"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              <span>WhatsApp Update</span>
+            </a>
+          )}
+
+          {/* Copy Live Tracking Link */}
+          {job.tracking_token && (
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(buildJobTrackingUrl(job.tracking_token));
+                setCopiedLink(true);
+                setTimeout(() => setCopiedLink(false), 2000);
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-card hover:bg-muted text-foreground font-semibold text-xs transition-colors shadow-xs"
+              title="Copy customer tracking link"
+            >
+              {copiedLink ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-emerald-600">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Link2 className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span>Tracking Link</span>
+                </>
+              )}
+            </button>
+          )}
+
           {/* Print Work Order Button */}
           <Link
             to={`/jobs/${job.id}/print`}

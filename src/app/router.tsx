@@ -16,6 +16,7 @@ import { CashDrawerPage } from '@/features/billing/CashDrawerPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { UsersPage } from '@/features/users/UsersPage';
 import { PrintWorkOrderPage } from '@/features/jobs/PrintWorkOrderPage';
+import { PublicTrackingPage } from '@/features/jobs/PublicTrackingPage';
 import { VehicleHistoryPage } from '@/features/vehicles/VehicleHistoryPage';
 import { useAuthStore } from '@/features/auth/store';
 
@@ -48,6 +49,10 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/track/:token',
+    element: <PublicTrackingPage />,
   },
   {
     path: '/',
