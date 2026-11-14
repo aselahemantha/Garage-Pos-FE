@@ -38,10 +38,15 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     reqHeaders['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  let response = await fetch(url, {
-    ...rest,
-    headers: reqHeaders,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...rest,
+      headers: reqHeaders,
+    });
+  } catch {
+    throw new Error('Unable to connect to the server. Please check that the backend service is running.');
+  }
 
   // Handle 401 Unauthorized - attempt token refresh once
   if (response.status === 401 && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login')) {
@@ -53,7 +58,7 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
       });
 
       if (refreshRes.ok) {
-        const refreshData = await refreshRes.json();
+        const refreshData = await refreshRes.json().catch(() => null);
         if (refreshData?.data?.access_token) {
           setAccessToken(refreshData.data.access_token);
           reqHeaders['Authorization'] = `Bearer ${refreshData.data.access_token}`;
@@ -71,15 +76,34 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     }
   }
 
+  const rawText = await response.text();
+  let parsedBody: any = null;
+  if (rawText) {
+    try {
+      parsedBody = JSON.parse(rawText);
+    } catch {
+      parsedBody = null;
+    }
+  }
+
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    const message = errorBody?.error?.message || response.statusText || 'An error occurred';
+    if (
+      (response.status === 502 || response.status === 503 || response.status === 504 || response.status === 500) &&
+      !parsedBody?.error?.message
+    ) {
+      throw new Error('Backend server is unavailable. Please make sure the API server is running and try again.');
+    }
+    const message = parsedBody?.error?.message || response.statusText || 'An error occurred';
     throw new Error(message);
   }
 
-  if (response.status === 204) {
+  if (response.status === 204 || !rawText) {
     return {} as T;
   }
 
-  return response.json();
+  if (parsedBody === null) {
+    throw new Error('Received an invalid response from the server.');
+  }
+
+  return parsedBody as T;
 }
