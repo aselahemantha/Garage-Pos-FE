@@ -46,6 +46,9 @@ export const PublicTrackingPage: React.FC = () => {
       const raw = await res.text();
       const parsed = raw ? JSON.parse(raw) : null;
       if (!res.ok) {
+        if (res.status >= 500 && !parsed?.error?.message) {
+          throw new Error('Server is currently unavailable. Please make sure the backend is running and try again.');
+        }
         throw new Error(parsed?.error?.message || 'Tracking link not found.');
       }
       setData(parsed.data);
