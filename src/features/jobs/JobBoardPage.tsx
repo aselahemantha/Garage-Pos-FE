@@ -42,122 +42,28 @@ export const JobBoardPage: React.FC = () => {
   const navigate = useNavigate();
   const issueInvoiceMutation = useIssueInvoice();
 
-  const mechanics = [
-    { id: 'All', name: 'All mechanics' },
-    { id: 'Nuwan', name: 'Nuwan' },
-    { id: 'Kasun', name: 'Kasun' },
-    { id: 'Ruwan', name: 'Ruwan' },
-    { id: 'Chaminda', name: 'Chaminda' },
-    { id: 'Unassigned', name: 'Unassigned' },
-  ];
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return 'UA';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  };
 
-  // Demo fallback cards matching Page 3 if database has fewer items
-  const demoFallbackCards = [
-    {
-      id: 991,
-      job_no: 'JOB-00101',
-      plate_no: 'CAB-4521',
-      vehicle_make: 'Toyota',
-      vehicle_model: 'Aqua',
-      vehicle_year: 2017,
-      customer_name: 'Shehan Wickramasinghe',
-      complaint: 'Full Service, Wheel Alignment +2 more',
-      status: 'pending',
-      time: '12 min',
-      mechanic: 'Unassigned',
-      initials: 'UA',
-    },
-    {
-      id: 992,
-      job_no: 'JOB-00102',
-      plate_no: 'WP KR-8830',
-      vehicle_make: 'Honda',
-      vehicle_model: 'Vezel',
-      vehicle_year: 2019,
-      customer_name: 'Ishara Gunawardena',
-      complaint: 'AC Service',
-      status: 'pending',
-      time: '34 min',
-      mechanic: 'Kasun',
-      initials: 'KS',
-    },
-    {
-      id: 993,
-      job_no: 'JOB-00103',
-      plate_no: 'WP KX-1194',
-      vehicle_make: 'Nissan',
-      vehicle_model: 'X-Trail',
-      vehicle_year: 2018,
-      customer_name: 'Dinesh Abeysekera',
-      complaint: 'Brake Pad Replacement, Wheel Alignment',
-      status: 'in_progress',
-      time: '1 h 20 m',
-      mechanic: 'Ruwan',
-      initials: 'RJ',
-      alert: 'Waiting for parts · brake pads',
-    },
-    {
-      id: 994,
-      job_no: 'JOB-00104',
-      plate_no: 'CAR-6612',
-      vehicle_make: 'Toyota',
-      vehicle_model: 'Premio',
-      vehicle_year: 2016,
-      customer_name: 'Tharushi Perera',
-      complaint: 'Full Service',
-      status: 'in_progress',
-      time: '1 h 55 m',
-      mechanic: 'Chaminda',
-      initials: 'CF',
-    },
-    {
-      id: 995,
-      job_no: 'JOB-00105',
-      plate_no: 'WP CAD-7740',
-      vehicle_make: 'Toyota',
-      vehicle_model: 'Axio',
-      vehicle_year: 2015,
-      customer_name: 'Sanjeewa Fernando',
-      complaint: 'Body Wash and Vacuum',
-      status: 'completed',
-      time: '2 h 40 m',
-      mechanic: 'Nuwan',
-      initials: 'NP',
-      action: 'Create invoice',
-    },
-    {
-      id: 996,
-      job_no: 'JOB-00106',
-      plate_no: 'WP KV-5528',
-      vehicle_make: 'Suzuki',
-      vehicle_model: 'Wagon R',
-      vehicle_year: 2018,
-      customer_name: 'Hiruni Jayawardena',
-      complaint: 'Oil and Filter Change, AC Service',
-      status: 'completed',
-      time: '3 h 05 m',
-      mechanic: 'Ruwan',
-      initials: 'RJ',
-      badge: 'Part paid LKR 12,981 due',
-    },
-    {
-      id: 997,
-      job_no: 'JOB-00107',
-      plate_no: 'WP CAA-9013',
-      vehicle_make: 'Toyota',
-      vehicle_model: 'Aqua',
-      vehicle_year: 2016,
-      customer_name: 'Pradeep Kumara · Chaminda',
-      complaint: 'Paid in full',
-      status: 'delivered',
-      time: 'Out 10:42',
-      paid: true,
-    },
-  ];
+  const formatElapsed = (iso: string) => {
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const mins = Math.max(0, Math.floor(diffMs / 60000));
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins} min`;
+    const hrs = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    return remMins > 0 ? `${hrs} h ${remMins} m` : `${hrs} h`;
+  };
 
-  // Merge real database jobs with demo cards
-  const allJobs: BoardCardItem[] = [
-    ...(realJobs || []).map((j) => ({
+  const allJobs: BoardCardItem[] = (realJobs || []).map((j) => {
+    const mechanic = j.notes?.includes('Mechanic:')
+      ? j.notes.split('Mechanic:')[1].split('.')[0].trim() || 'Unassigned'
+      : 'Unassigned';
+    return {
       id: j.id,
       job_no: j.job_no,
       plate_no: j.plate_no,
@@ -167,11 +73,19 @@ export const JobBoardPage: React.FC = () => {
       customer_name: j.customer_name,
       complaint: j.complaint || 'General Inspection',
       status: j.status,
-      time: 'Just now',
-      mechanic: j.notes?.includes('Mechanic:') ? j.notes.split('Mechanic:')[1].split('.')[0].trim() : 'Nuwan',
-      initials: 'NP',
-    })),
-    ...demoFallbackCards,
+      time: formatElapsed(j.created_at),
+      mechanic,
+      initials: getInitials(mechanic),
+    };
+  });
+
+  const uniqueMechanics = Array.from(
+    new Set(allJobs.map((j) => j.mechanic).filter((m): m is string => Boolean(m && m !== 'Unassigned')))
+  );
+  const mechanics = [
+    { id: 'All', name: 'All mechanics' },
+    ...uniqueMechanics.map((m) => ({ id: m, name: m })),
+    { id: 'Unassigned', name: 'Unassigned' },
   ];
 
   const handleAdvanceStatus = async (id: number, currentStatus: string) => {
@@ -180,7 +94,7 @@ export const JobBoardPage: React.FC = () => {
     else if (currentStatus === 'in_progress') nextStatus = 'completed';
     else if (currentStatus === 'completed') nextStatus = 'delivered';
 
-    if (!nextStatus || id > 900) return; // Ignore mock IDs
+    if (!nextStatus) return;
 
     try {
       await updateStatus.mutateAsync({ id, status: nextStatus });

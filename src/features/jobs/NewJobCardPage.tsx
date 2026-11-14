@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useServices } from '@/features/catalog/api';
 import { resolveServicePrice, ServiceItem } from '@/features/catalog/types';
 import { useParts } from '@/features/inventory/api';
+import { useUsers } from '@/features/users/api';
 import { useCreateJob } from './api';
 import { CreateJobItemInput } from './types';
 import { Plate } from '@/components/ui/Plate';
@@ -35,53 +36,37 @@ export const NewJobCardPage: React.FC = () => {
   const navigate = useNavigate();
 
   // 1. Search / Lookup state
-  const [query, setQuery] = useState('CAB-4521');
+  const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [vehicleData, setVehicleData] = useState<FoundVehicle | null>({
-    vehicle_id: 1,
-    customer_id: 1,
-    plate_no: 'CAB-4521',
-    make: 'Toyota',
-    model: 'Aqua',
-    year: 2017,
-    last_mileage: 58210,
-    customer_name: 'Shehan Wickramasinghe',
-    customer_phone: '077 412 3398',
-  });
+  const [vehicleData, setVehicleData] = useState<FoundVehicle | null>(null);
   const [notFound, setNotFound] = useState(false);
 
   // Quick Inline creation state (Page 8)
   const [newPlate, setNewPlate] = useState('');
-  const [newMake, setNewMake] = useState('Toyota');
+  const [newMake, setNewMake] = useState('');
   const [newModel, setNewModel] = useState('');
-  const [newYear, setNewYear] = useState('2018');
+  const [newYear, setNewYear] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [newName, setNewName] = useState('');
 
   // 2. Check-in details state
-  const [mileageIn, setMileageIn] = useState<number>(61480);
-  const [promisedTime, setPromisedTime] = useState('Today, 4:30 PM');
-  const [complaint, setComplaint] = useState(
-    'Grinding noise from the front when braking. Due for full service. Customer asked to check the wheel alignment — car pulls slightly left.'
-  );
+  const [mileageIn, setMileageIn] = useState<number>(0);
+  const [promisedTime, setPromisedTime] = useState('');
+  const [complaint, setComplaint] = useState('');
 
   // 3. Selected Items state
-  const [selectedItems, setSelectedItems] = useState<CreateJobItemInput[]>([
-    { item_type: 'service', service_id: 1, description: 'Full Service', qty: 1, unit_price: 1850000, discount: 0 },
-    { item_type: 'service', service_id: 3, description: 'Brake Pad Replacement', qty: 1, unit_price: 450000, discount: 0 },
-    { item_type: 'part', part_id: 1, description: 'Brake Pads (Front Set)', qty: 1, unit_price: 980000, discount: 0 },
-    { item_type: 'service', service_id: 4, description: 'Wheel Alignment', qty: 1, unit_price: 350000, discount: 0 },
-  ]);
+  const [selectedItems, setSelectedItems] = useState<CreateJobItemInput[]>([]);
 
   // Catalog tab filter
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [catalogSearch, setCatalogSearch] = useState('');
 
   // 4. Mechanic Assignment state
-  const [assignedMechanic, setAssignedMechanic] = useState<string>('Nuwan Perera');
+  const [assignedMechanic, setAssignedMechanic] = useState<string>('');
 
   const { data: services } = useServices();
   const { data: parts } = useParts();
+  const { data: staffUsers } = useUsers();
   const createJob = useCreateJob();
 
   // Search plate / phone lookup
@@ -256,12 +241,20 @@ export const NewJobCardPage: React.FC = () => {
     }
   };
 
-  const mechanicsList = [
-    { name: 'Nuwan Perera', jobs: '1 active job', initial: 'NP' },
-    { name: 'Kasun Silva', jobs: '2 active jobs', initial: 'KS' },
-    { name: 'Ruwan Jayasinghe', jobs: 'Waiting on parts', initial: 'RJ' },
-    { name: 'Chaminda Fernando', jobs: '1 active job', initial: 'CF' },
-  ];
+  const mechanicsList = (staffUsers || [])
+    .filter((u) => u.is_active)
+    .map((u) => {
+      const words = u.name.trim().split(/\s+/).filter(Boolean);
+      const initial =
+        words.length >= 2
+          ? `${words[0][0]}${words[1][0]}`.toUpperCase()
+          : u.name.slice(0, 2).toUpperCase();
+      return {
+        name: u.name,
+        jobs: u.role,
+        initial,
+      };
+    });
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">

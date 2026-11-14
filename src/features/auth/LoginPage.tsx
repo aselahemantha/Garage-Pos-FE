@@ -5,8 +5,8 @@ import { setAccessToken } from '@/lib/api';
 import { Wrench, Lock, User as UserIcon, AlertCircle } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const [username, setUsername] = useState('owner');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
